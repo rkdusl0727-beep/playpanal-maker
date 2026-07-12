@@ -36,3 +36,4 @@ footer p{max-height:7.75em;display:-webkit-box;-webkit-box-orient:vertical;-webk
 .book-cover-slot img{object-fit:contain!important;background:rgba(255,255,255,.92)}
 .play-copy>p,.book-copy-body>p{font-size:14px!important;line-height:1.45}
 .memo-guide{display:block;margin-top:3px;padding:10px 12px;border:1px solid #9bcfea;border-radius:9px;background:#eaf6ff;color:#075f9b;font-size:12px;font-weight:800;line-height:1.45}.memo-guide kbd{display:inline-block;padding:2px 7px;border:1px solid #6daecc;border-bottom-width:2px;border-radius:5px;background:#fff;color:#075f9b;font:inherit;font-weight:900}.memo-guide i{padding:0 5px;font-style:normal;color:#65a6c3}
+.draft-result .approve{background:#dff3e5;color:#176b3a;border:1px solid #9ed0ae}.draft-result .approve:hover{background:#ccebd6}.draft-result .approved{background:#edf8f0;color:#2d7547;border:1px solid #b9dbc4}
