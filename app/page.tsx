@@ -66,6 +66,7 @@ export default function Home() {
   const now = new Date();
   const initial = weekRange(now.getFullYear(), 7, 2);
   const [title, setTitle] = useState("어진반 놀이로 배우다");
+  const [titleColor, setTitleColor] = useState("#172332");
   const [theme, setTheme] = useState("뜨거운 여름");
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(7);
@@ -155,9 +156,11 @@ export default function Home() {
     if (backgroundImage) slide.addImage({ data: backgroundImage, x: 0, y: 0, w: 8.267, h: 11.693 });
     slide.addShape(pptx.ShapeType.arc, { x: 6.65, y: .55, w: 2.2, h: 2.2, rotate: 18, fill: { color: "B8E8FA", transparency: 25 }, line: { color: "B8E8FA", transparency: 100 } });
     slide.addShape(pptx.ShapeType.arc, { x: -.6, y: 9.1, w: 2.2, h: 2.2, rotate: 205, fill: { color: "8FD2F0", transparency: 35 }, line: { color: "8FD2F0", transparency: 100 } });
-    slide.addText(title, { x: .32, y: .22, w: 4.8, h: .35, fontFace: "CookieRun Black", fontSize: 22, bold: true, color: "172332", margin: 0, breakLine: false });
-    slide.addText(theme, { x: .32, y: .64, w: 3.1, h: .28, fontFace: "Arial", fontSize: 15, bold: true, color: "0877BD", margin: 0 });
-    slide.addText(`놀이기간: ${month}월 ${week}주(${pretty(start)} ~ ${pretty(end)})`, { x: 4.55, y: .48, w: 3.35, h: .27, fontFace: "Arial", fontSize: 9.5, bold: true, align: "right", color: "172332", margin: 0 });
+    slide.addShape(pptx.ShapeType.line, { x: .32, y: .12, w: 7.6, h: 0, line: { color: "172332", width: 2.2 } });
+    slide.addText(title, { x: .32, y: .2, w: 7.6, h: .42, fontFace: "CookieRun Black", fontSize: 26, bold: true, align: "center", color: titleColor.replace("#", "").toUpperCase(), margin: 0, breakLine: false });
+    slide.addText(theme, { x: .32, y: .67, w: 7.6, h: .31, fontFace: "Freesentation", fontSize: 17, bold: true, align: "center", color: "172332", margin: 0 });
+    slide.addText(`놀이기간: ${month}월 ${week}주(${pretty(start)} ~ ${pretty(end)})`, { x: 4.25, y: .98, w: 3.67, h: .2, fontFace: "Freesentation", fontSize: 8.5, bold: true, align: "right", color: "172332", margin: 0 });
+    slide.addShape(pptx.ShapeType.line, { x: .32, y: 1.2, w: 7.6, h: 0, line: { color: "172332", width: .8 } });
 
     const positions = [
       { x: .32, y: 1.12, w: 3.7, h: 2.7 }, { x: 4.22, y: 1.12, w: 3.7, h: 2.7 },
@@ -198,7 +201,7 @@ export default function Home() {
     <aside className="editor no-print">
       <div className="editor-head"><p className="eyebrow">PLAY PANEL MAKER</p><h1>주간 놀이 패널</h1><p>내용을 입력하면 오른쪽 A4 패널에 바로 반영됩니다.</p></div>
       <section className="settings">
-        <label>패널 제목<input value={title} onChange={e => setTitle(e.target.value)} /></label>
+        <div className="title-editor-row"><label>패널 제목<input value={title} onChange={e => setTitle(e.target.value)} /></label><label>글자색<input type="color" value={titleColor} onChange={e=>setTitleColor(e.target.value)} /></label></div>
         <label>이번 주 놀이 주제<input value={theme} onChange={e => setTheme(e.target.value)} /></label>
         <div className="date-row">
           <label>연도<select value={year} onChange={e => { const v=+e.target.value; setYear(v); updateRange(v,month,week); }}>{[2025,2026,2027,2028].map(v=><option key={v}>{v}</option>)}</select></label>
@@ -234,7 +237,7 @@ export default function Home() {
       <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button disabled={!!missing.length} onClick={()=>window.print()}>PDF 출력</button><button disabled={!!missing.length} onClick={exportPpt}>PPT 다운로드</button><button className="primary" disabled={!!missing.length} onClick={exportPng}>이미지 저장</button></div></div>
       {!!missing.length&&<div className="missing no-print"><b>출력 전 확인:</b> {missing.slice(0,4).join(", ")}{missing.length>4&&` 외 ${missing.length-4}개`}</div>}
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
-        <header className="panel-header"><div><h2>{title}</h2><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
+        <header className="panel-header"><div><h2 style={{color:titleColor}}>{title}</h2><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i}`} key={p.id}>
           <div className="photo-grid">{p.photos.map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
           <div className="play-copy"><h4>{p.title}</h4><p>{p.description}</p></div>
