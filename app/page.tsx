@@ -205,7 +205,7 @@ export default function Home() {
     slide.addShape(pptx.ShapeType.line, { x: .32, y: .12, w: 7.6, h: 0, line: { color: "172332", width: 2.2 } });
     slide.addText(htmlToPptRuns(titleHtml, "#172332"), { x: .32, y: .2, w: 7.6, h: .42, fontFace: "CookieRun Black", fontSize: 26, bold: true, align: "center", margin: 0, breakLine: false });
     slide.addText(theme, { x: .32, y: .67, w: 7.6, h: .31, fontFace: "Freesentation", fontSize: 17, bold: true, align: "center", color: "172332", margin: 0 });
-    slide.addText(`놀이기간: ${month}월 ${week}주(${pretty(start)} ~ ${pretty(end)})`, { x: 4.25, y: .98, w: 3.67, h: .2, fontFace: "Freesentation", fontSize: 8.5, bold: true, align: "right", color: "172332", margin: 0 });
+    slide.addText(`놀이기간: ${month}월 ${week}주(${pretty(start)} ~ ${pretty(end)})`, { x: 3.75, y: .95, w: 4.17, h: .27, fontFace: "Freesentation", fontSize: 11, bold: true, align: "right", color: "172332", margin: 0 });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 1.2, w: 7.6, h: 0, line: { color: "172332", width: .8 } });
 
     const positions = [
