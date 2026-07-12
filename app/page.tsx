@@ -581,6 +581,14 @@ export default function Home() {
       }
     });
     clone.style.height = "auto"; clone.style.minHeight = "1123px"; clone.style.overflow = "visible";
+    const cloneImages = Array.from(clone.querySelectorAll<HTMLImageElement>("img"));
+    await Promise.all(cloneImages.map(async image => {
+      if (!image.getAttribute("src") || image.getAttribute("src")!.startsWith("data:")) return;
+      try {
+        const response = await fetch(image.src); const blob = await response.blob();
+        image.src = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob); });
+      } catch { /* 외부 이미지가 없는 경우에도 나머지 패널은 저장 */ }
+    }));
     const measureHost = document.createElement("div");
     measureHost.style.cssText = "position:absolute;left:-10000px;top:0;width:794px;visibility:hidden;pointer-events:none;";
     measureHost.appendChild(clone); document.body.appendChild(measureHost);
