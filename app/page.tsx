@@ -102,6 +102,9 @@ const finalizeDescription = (value: string) => {
     .replace(/즐거웠음(?=\s*[.!?]|$)/g, "즐거웠어요")
     .replace(/신기했음(?=\s*[.!?]|$)/g, "신기했어요")
     .replace(/나타냄(?=\s*[.!?]|$)/g, "나타내보았어요")
+    .replace(/보임(?=\s*[.!?]|$)/g, "보였어요")
+    .replace(/붙임(?=\s*[.!?]|$)/g, "붙여보았어요")
+    .replace(/매달아둠(?=\s*[.!?]|$)/g, "매달아두었어요")
     .replace(/해봄(?=\s*[.!?]|$)/g, "해보았어요")
     .replace(/만들어봄(?=\s*[.!?]|$)/g, "만들어보았어요")
     .replace(/그려봄(?=\s*[.!?]|$)/g, "그려보았어요")
@@ -110,6 +113,7 @@ const finalizeDescription = (value: string) => {
     .replace(/([가-힣]+)함(?=\s*[.!?]|$)/g, "$1했어요")
     .replace(/\s+([,.!?])/g, "$1")
     .replace(/([.!?])(?=\S)/g, "$1 ")
+    .replace(/\.{2,}/g, ".")
     .replace(/\s{2,}/g, " ")
     .replace(/완성한\s+작품([은을이가의])/g, "완성한\u00a0작품$1")
     .trim();
@@ -134,6 +138,9 @@ const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = fa
 
 const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
+  if (/모자이크/.test(context) && /(모빌|교실\s*천장)/.test(context) && /(빗방울|물방울)/.test(context) && /색종이/.test(context)) {
+    return "비 오는 날씨를 보며 빗방울의 모습을 표현해보았어요. 빗방울 도안에 남색, 파란색, 하늘색 색종이를 찢어 붙여 모자이크로 꾸미고, 완성한 작품을 모빌로 만들어 교실 천장에 매달았답니다. 천장에 매단 알록달록한 색종이 모빌이 빗방울처럼 보였어요.";
+  }
   if (/(비오는날|비 오는 날)/.test(context) && /(하늘정원|옥상정원)/.test(context) && /물웅덩이/.test(context) && /우산/.test(context)) {
     return "비 오는 날 하늘정원에 올라가 빗소리를 듣고, 떨어지는 빗방울과 물웅덩이를 관찰했어요. 교실로 돌아와 크레파스로 빗방울과 물웅덩이를, 물감으로 배경을 칠해 비 오는 풍경을 표현했답니다. 물감 위로 나타난 빗방울을 보며 즐거워하고, 우산 쓴 자신의 모습을 붙여 그림을 완성했어요.";
   }
@@ -226,7 +233,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
   let story = finalizeDescription(varied.join(" "));
   const hasPeerPlay = /친구|짝|함께|협동/.test(context);
   const additions = [
-    /그림책|책을 읽|동화/.test(context) ? "그림책에서 기억에 남은 장면을 떠올리며 놀이를 이어가보았어요." : hasPeerPlay ? "놀이에서 떠오른 생각을 친구와 나누며 활동을 이어가보았어요." : "떠오른 생각을 바탕으로 놀이를 차근차근 이어가보았어요.",
+    /그림책|책을 읽|동화/.test(context) ? "그림책에서 기억에 남은 장면을 중심으로 활동을 완성해보았어요." : hasPeerPlay ? "활동에서 표현한 내용을 친구와 나누며 함께 놀이해보았어요." : "활동에서 사용한 재료와 방법을 살려 표현을 완성해보았어요.",
     /물감|분필|색종이|우드락|점토|크레파스|연필|종이|블록|악기|놀잇감/.test(context) ? "준비한 재료와 도구를 활용해 떠올린 모습을 구체적으로 표현해보았답니다." : "여러 가지 방법을 직접 시도하며 놀이를 완성해보았답니다.",
     hasPeerPlay ? "서로의 표현을 살펴보고 의견을 나누며 함께 놀이하는 즐거움을 느껴보았어요." : "완성된 결과에는 놀이 과정에서 시도한 방법과 생각이 자연스럽게 담겼어요.",
   ];
