@@ -282,6 +282,11 @@ const withAnd = (word: string) => {
   const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
   return `${word}${hasBatchim ? "과" : "와"}`;
 };
+const withObject = (word: string) => {
+  const last = word.charCodeAt(word.length - 1);
+  const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
+  return `${word}${hasBatchim ? "을" : "를"}`;
+};
 const joinKorean = (items: string[]) => items.length < 2 ? items[0] || "다양한 놀이 요소" : `${items.slice(0, -2).join(", ")}${items.length > 2 ? ", " : ""}${withAnd(items.at(-2)!)} ${items.at(-1)}`;
 
 const makeWeeklyLearning = (allPlays: Play[], theme: string) => {
@@ -296,10 +301,14 @@ const makeWeeklyLearning = (allPlays: Play[], theme: string) => {
   const seasonal = /여름|태양|바다|비|파도/.test(`${theme} ${source}`)
     ? "계절의 특징을 자연스럽게 알아보았어요"
     : `${theme}에 담긴 특징을 자연스럽게 발견해보았어요`;
-  const exploration = `이번 주에 유아들은 ${subject} 등 다양한 놀이 요소를 여러 가지 재료와 방법으로 탐색하며 ${seasonal}.`;
-  const expression = "놀이에 필요한 재료와 도구를 안전하게 사용하고 손과 몸의 움직임을 조절하며 자신의 생각과 느낌을 창의적으로 표현했답니다.";
-  const together = "친구들과 놀이 방법과 발견한 점을 이야기하고 서로의 표현을 존중하며 함께 놀이를 만들어가는 즐거움을 경험했어요.";
-  return `${exploration} ${expression} ${together}`;
+  const learningLines = [
+    `이번 주에 유아들은 ${withObject(subject)} 여러 재료와 방법으로 탐색했어요.`,
+    `놀이 속 모습과 소리의 특징을 비교하며 ${seasonal}.`,
+    "재료와 도구를 활용해 생각과 느낌을 창의적으로 표현했답니다.",
+    "친구의 표현을 존중하고 생각을 나누며 함께 놀이를 완성했어요.",
+    "도구를 안전하게 사용하고 스스로 놀이를 이어가는 경험을 했어요.",
+  ];
+  return learningLines.join("\n");
 };
 
 const htmlToPlain = (html: string) => {
@@ -582,7 +591,7 @@ export default function Home() {
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
-      <section className="play-editor weekly-editor"><RichColorEditor label="놀이를 통한 배움 타이틀" html={learningTitleHtml} onChange={(html)=>setLearningTitleHtml(html)} /><label>한 주 전체 배움 내용 <span className="description-guide">{allPlaysApproved?"모든 놀이를 종합해 생성되었습니다 · 직접 수정 가능 · 최대 5줄":"모든 놀이 설명을 확인하면 마지막에 자동 생성됩니다"}</span><textarea rows={5} value={weeklyLearning} disabled={!allPlaysApproved} placeholder="모든 놀이 설명 확인 후 생성" onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
+      <section className="play-editor weekly-editor"><RichColorEditor label="놀이를 통한 배움 타이틀" html={learningTitleHtml} onChange={(html)=>setLearningTitleHtml(html)} /><label>한 주 전체 배움 내용 <span className="description-guide">{allPlaysApproved?"모든 놀이와 학습 요소를 종합해 5줄로 생성되었습니다 · 직접 수정 가능":"모든 놀이 설명을 확인하면 마지막에 자동 생성됩니다"}</span><textarea rows={5} value={weeklyLearning} disabled={!allPlaysApproved} placeholder="모든 놀이 설명 확인 후 생성" onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
       <section className="play-editor logo-editor"><div className="section-title"><b>어린이집 로고</b><span>패널 제일 하단에 표시됩니다</span></div><label className="upload background-upload"><span>{logoImage?"로고 이미지 변경":"＋ 로고 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={uploadLogo}/></label>{logoImage&&<button className="text-btn" onClick={()=>setLogoImage(null)}>로고 삭제</button>}</section>
       {plays.length<6&&<button className="add-play" onClick={()=>setPlays(v=>[...v,makePlay(v.length)])}>＋ 놀이 하나 더 추가</button>}
     </aside>
