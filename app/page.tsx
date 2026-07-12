@@ -118,6 +118,35 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   return "놀이 속에서 발견한 새로운 생각";
 };
 
+const withAnd = (word: string) => {
+  const last = word.charCodeAt(word.length - 1);
+  const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
+  return `${word}${hasBatchim ? "과" : "와"}`;
+};
+const joinKorean = (items: string[]) => items.length < 2 ? items[0] || "다양한 놀이 요소" : `${items.slice(0, -2).join(", ")}${items.length > 2 ? ", " : ""}${withAnd(items.at(-2)!)} ${items.at(-1)}`;
+
+const makeWeeklyLearning = (allPlays: Play[], theme: string) => {
+  const approved = allPlays.filter(play => play.approved);
+  const source = approved.map(play => `${play.publishedTitle} ${play.publishedDescription}`).join(" ");
+  const elements = [
+    [/태양|햇빛|햇살/, "태양"], [/바다|파도|물고기|물놀이/, "바다"], [/비|빗방울|물웅덩이|수채/, "비"],
+    [/소리|악기|노래|리듬|천둥|귀뚜라미/, `${theme.includes("여름") ? "여름 " : ""}소리`], [/꽃|나뭇잎|나무|숲|정원/, "자연"],
+    [/그림책|이야기|동화/, "이야기"], [/색|선|그림|물감|분필|미술/, "색과 선"], [/블록|쌓기|구성/, "구성과 공간"],
+  ].filter(([pattern]) => (pattern as RegExp).test(source)).map(([, label]) => label as string).slice(0, 4);
+  const subject = joinKorean([...new Set(elements)]);
+  const seasonal = /여름|태양|바다|비|파도/.test(`${theme} ${source}`)
+    ? "계절의 특징을 자연스럽게 알아보았어요"
+    : `${theme}에 담긴 특징을 자연스럽게 발견해보았어요`;
+  const exploration = `${subject} 등 이번 주 놀이의 다양한 요소를 여러 가지 재료와 방법으로 탐색하며 ${seasonal}.`;
+  const expression = /색|선|그림|물감|분필|미술|만들|꾸미|표현|몸짓|사진/.test(source)
+    ? "다양한 재료를 활용하며 자신의 생각과 느낌을 창의적으로 표현했답니다."
+    : "놀이 과정에서 발견한 생각과 느낌을 자신만의 방법으로 표현해보았답니다.";
+  const together = /친구|함께|합동|서로|협력|이야기/.test(source)
+    ? "친구들과 놀이를 함께 만들고 서로의 표현을 감상하며 즐겁게 소통하고 협력하는 경험을 해보았어요."
+    : "놀이에서 새롭게 발견한 점을 되돌아보며 경험의 의미를 자연스럽게 넓혀보았어요.";
+  return `${exploration} ${expression} ${together}`;
+};
+
 const htmlToPlain = (html: string) => {
   if (typeof document === "undefined") return html.replace(/<[^>]*>/g, "");
   const box = document.createElement("div"); box.innerHTML = html;
@@ -210,7 +239,11 @@ export default function Home() {
       return { ...p, note, title: generatedTitle, description: generatedDescription, approved: false };
     }));
   };
-  const publishDraft = (idx: number, title: string, description: string) => updatePlay(idx, { title, description, publishedTitle: title, publishedDescription: description, approved: true });
+  const publishDraft = (idx: number, title: string, description: string) => {
+    const next = plays.map((play, i) => i === idx ? { ...play, title, description, publishedTitle: title, publishedDescription: description, approved: true } : play);
+    setPlays(next);
+    setWeeklyLearning(makeWeeklyLearning(next, theme));
+  };
   const missing = useMemo(() => {
     const items: string[] = [];
     if (!title.trim()) items.push("상단 제목");
@@ -379,7 +412,7 @@ export default function Home() {
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
-      <section className="play-editor weekly-editor"><RichColorEditor label="놀이를 통한 배움 타이틀" html={learningTitleHtml} onChange={(html)=>setLearningTitleHtml(html)} /><label>한 주 전체 배움 내용 <span className="description-guide">최대 5줄까지 표시됩니다</span><textarea rows={5} value={weeklyLearning} onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
+      <section className="play-editor weekly-editor"><RichColorEditor label="놀이를 통한 배움 타이틀" html={learningTitleHtml} onChange={(html)=>setLearningTitleHtml(html)} /><label>한 주 전체 배움 내용 <span className="description-guide">확인된 모든 놀이를 종합해 자동 생성되며 직접 수정할 수 있습니다 · 최대 5줄</span><textarea rows={5} value={weeklyLearning} onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
       <section className="play-editor logo-editor"><div className="section-title"><b>어린이집 로고</b><span>패널 제일 하단에 표시됩니다</span></div><label className="upload background-upload"><span>{logoImage?"로고 이미지 변경":"＋ 로고 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={uploadLogo}/></label>{logoImage&&<button className="text-btn" onClick={()=>setLogoImage(null)}>로고 삭제</button>}</section>
       {plays.length<6&&<button className="add-play" onClick={()=>setPlays(v=>[...v,makePlay(v.length)])}>＋ 놀이 하나 더 추가</button>}
     </aside>
