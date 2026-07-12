@@ -58,6 +58,7 @@ export default function Home() {
   const [start, setStart] = useState(initial[0]);
   const [end, setEnd] = useState(initial[1]);
   const [plays, setPlays] = useState<Play[]>(() => Array.from({ length: 5 }, (_, i) => makePlay(i)));
+  const [weeklyLearning, setWeeklyLearning] = useState("여름의 태양과 바다, 비와 다양한 여름 소리를 여러 재료와 방법으로 탐색하며 계절의 특징을 자연스럽게 알아보았습니다. 자신의 생각과 느낌을 창의적으로 표현하고, 친구들과 함께 여름 풍경과 소리를 만들며 서로의 표현을 감상하고 소통하는 경험을 했습니다.");
   const panelRef = useRef<HTMLDivElement>(null);
 
   const updateRange = (y: number, m: number, w: number) => {
@@ -72,11 +73,11 @@ export default function Home() {
     plays.forEach((p, i) => {
       if (!p.title.trim()) items.push(`${i + 1}번 놀이 제목`);
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
-      if (!p.learning.trim()) items.push(`${i + 1}번 놀이 배움`);
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
     });
+    if (!weeklyLearning.trim()) items.push("한 주 전체 놀이를 통한 배움");
     return items;
-  }, [title, theme, start, end, plays]);
+  }, [title, theme, start, end, plays, weeklyLearning]);
 
   const upload = (e: ChangeEvent<HTMLInputElement>, pi: number, si: number) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -89,7 +90,6 @@ export default function Home() {
     const p = plays[idx]; const note = p.note.trim() || "아이들이 여름 재료를 탐색하고 친구와 함께 놀이함";
     updatePlay(idx, {
       description: `${note}. 아이들은 놀이 과정에서 자신의 생각을 자유롭게 표현하고 친구들과 즐겁게 경험을 나누었습니다.`,
-      learning: "주변 환경을 탐색하며 궁금한 점을 스스로 발견하고, 다양한 방법으로 표현하는 과정에서 창의성과 협력하는 태도를 키웠습니다.",
       approved: false,
     });
   };
@@ -152,13 +152,11 @@ export default function Home() {
       const textY = wide ? box.y : box.y + 1.24;
       const textW = wide ? 4.0 : box.w;
       slide.addText(p.title, { x: textX, y: textY, w: textW, h: .26, fontFace: "Arial", fontSize: wide ? 12 : 10.5, bold: true, align: "center", color: "172332", margin: 0, breakLine: false });
-      slide.addText(p.description, { x: textX, y: textY + .31, w: textW, h: wide ? .61 : .48, fontFace: "Arial", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
-      slide.addShape(pptx.ShapeType.roundRect, { x: textX, y: textY + (wide ? .98 : .85), w: textW, h: wide ? .61 : .55, rectRadius: .04, fill: { color: "FFFFFF", transparency: 42 }, line: { color: "FFFFFF", transparency: 100 } });
-      slide.addText([{ text: "놀이를 통한 배움\n", options: { bold: true, color: "0871AA" } }, { text: p.learning, options: { color: "172332" } }], { x: textX + .07, y: textY + (wide ? 1.03 : .9), w: textW - .14, h: wide ? .5 : .44, fontFace: "Arial", fontSize: wide ? 7.5 : 6.8, margin: 0, breakLine: false, fit: "shrink" });
+      slide.addText(p.description, { x: textX, y: textY + .31, w: textW, h: wide ? 1.18 : 1.05, fontFace: "Arial", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
     });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
     slide.addText("놀이를 통한 배움", { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "Arial", fontSize: 17, bold: true, color: "075F9B", margin: 0 });
-    slide.addText(plays.map(p => p.learning).join(" "), { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Arial", fontSize: 8.5, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
+    slide.addText(weeklyLearning, { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Arial", fontSize: 8.5, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
     await pptx.writeFile({ fileName: `${theme}-놀이패널.pptx` });
   };
 
@@ -182,7 +180,6 @@ export default function Home() {
         <label>교사 관찰 메모<textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value})} placeholder="아이들의 말, 행동, 놀이 흐름을 적어주세요."/></label>
         <button className="ai-button" onClick={()=>generate(pi)}>✦ AI 문장 만들기</button>
         <label>놀이에 대한 설명<textarea value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label>
-        <label>놀이를 통한 배움<textarea value={p.learning} onChange={e=>updatePlay(pi,{learning:e.target.value,approved:false})}/></label>
         <button className={p.approved?"approved":"approve"} onClick={()=>updatePlay(pi,{approved:!p.approved})}>{p.approved?"✓ 승인 완료":"문장 확인 후 승인"}</button>
         <p className="mini-label">사진 6칸 · 빈칸은 자동으로 null 저장</p>
         <div className="photo-controls">{p.photos.map((ph,si)=><div className="photo-control" key={si}>
@@ -190,6 +187,7 @@ export default function Home() {
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
+      <section className="play-editor weekly-editor"><div className="section-title"><b>한 주 전체 놀이를 통한 배움</b></div><label>패널 최하단에 한 번만 표시됩니다<textarea value={weeklyLearning} onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
       {plays.length<6&&<button className="add-play" onClick={()=>setPlays(v=>[...v,makePlay(v.length)])}>＋ 놀이 하나 더 추가</button>}
     </aside>
 
@@ -200,9 +198,9 @@ export default function Home() {
         <header className="panel-header"><div><h2>{title}</h2><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i}`} key={p.id}>
           <div className="photo-grid">{p.photos.map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
-          <div className="play-copy"><h4>{p.title}</h4><p>{p.description}</p><div className="learning"><b>놀이를 통한 배움</b><p>{p.learning}</p></div></div>
+          <div className="play-copy"><h4>{p.title}</h4><p>{p.description}</p></div>
         </section>)}</div>
-        <footer><b>놀이를 통한 배움</b><p>{plays.map(p=>p.learning).join(" ")}</p></footer>
+        <footer><b>놀이를 통한 배움</b><p>{weeklyLearning}</p></footer>
       </article>
     </section>
   </main>;
