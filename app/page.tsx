@@ -536,24 +536,49 @@ export default function Home() {
     setBackgroundCss(bg.css); setBackgroundColor(`#${bg.color}`); setBackgroundImage(null);
   };
 
-  const exportPng = async () => {
-    const node = panelRef.current; if (!node) return;
+  const renderPanelDataUrl = async () => {
+    const node = panelRef.current; if (!node) return null;
     const clone = node.cloneNode(true) as HTMLElement;
-    clone.style.width = "794px"; clone.style.height = "1123px";
+    clone.style.width = "794px"; clone.style.height = "1123px"; clone.style.margin = "0"; clone.style.transform = "none";
+    const originals = [node, ...Array.from(node.querySelectorAll<HTMLElement>("*"))];
+    const copies = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>("*"))];
+    originals.forEach((original, index) => {
+      const copy = copies[index]; if (!copy) return;
+      const computed = window.getComputedStyle(original);
+      for (let i = 0; i < computed.length; i += 1) {
+        const property = computed.item(i);
+        copy.style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
+      }
+    });
+    const stylesheetText = Array.from(document.styleSheets).flatMap(sheet => {
+      try { return Array.from(sheet.cssRules).map(rule => rule.cssText); } catch { return []; }
+    }).join("\n");
     const xml = new XMLSerializer().serializeToString(clone);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><foreignObject width="100%" height="100%">${xml}</foreignObject></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><foreignObject width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml"><style>${stylesheetText}</style>${xml}</div></foreignObject></svg>`;
     const img = new Image(); img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    await img.decode(); const canvas = document.createElement("canvas"); canvas.width = 1588; canvas.height = 2246;
+    await img.decode();
+    const canvas = document.createElement("canvas"); canvas.width = 1588; canvas.height = 2246;
     canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"));
+    return canvas.toDataURL("image/png");
+  };
+
+  const exportPng = async () => {
+    const dataUrl = await renderPanelDataUrl(); if (!dataUrl) return;
+    const response = await fetch(dataUrl); const blob = await response.blob();
     if (blob) await saveBlobWithPicker(blob, `${theme}-놀이패널.png`);
   };
 
   const exportPpt = async () => {
     const { default: PptxGenJS } = await import("pptxgenjs");
+    const panelDataUrl = await renderPanelDataUrl(); if (!panelDataUrl) return;
     const pptx = new PptxGenJS();
     pptx.defineLayout({ name: "A4_PORTRAIT", width: 8.267, height: 11.693 });
     pptx.layout = "A4_PORTRAIT";
+    const exactSlide = pptx.addSlide();
+    exactSlide.addImage({ data: panelDataUrl, x: 0, y: 0, w: 8.267, h: 11.693 });
+    const exactBlob = await (pptx.write as unknown as (options: { outputType: string }) => Promise<Blob>)({ outputType: "blob" });
+    await saveBlobWithPicker(exactBlob, `${theme}-놀이패널.pptx`);
+    return;
     pptx.author = "어진반";
     pptx.subject = `${theme} 주간 놀이 패널`;
     pptx.title = title;
