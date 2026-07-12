@@ -216,7 +216,7 @@ export default function Home() {
   const [start, setStart] = useState(initial[0]);
   const [end, setEnd] = useState(initial[1]);
   const [plays, setPlays] = useState<Play[]>(() => Array.from({ length: 5 }, (_, i) => makePlay(i)));
-  const [weeklyLearning, setWeeklyLearning] = useState("여름의 태양과 바다, 비와 다양한 여름 소리를 여러 재료와 방법으로 탐색하며 계절의 특징을 자연스럽게 알아보았습니다. 자신의 생각과 느낌을 창의적으로 표현하고, 친구들과 함께 여름 풍경과 소리를 만들며 서로의 표현을 감상하고 소통하는 경험을 했습니다.");
+  const [weeklyLearning, setWeeklyLearning] = useState("");
   const [learningTitleHtml, setLearningTitleHtml] = useState("<span style=\"color:#075f9b\">놀이를 통한</span> <span style=\"color:#0877bd\">배움</span>");
   const [backgroundCss, setBackgroundCss] = useState(monthlyBackgrounds[6].css);
   const [backgroundColor, setBackgroundColor] = useState(`#${monthlyBackgrounds[6].color}`);
@@ -229,7 +229,10 @@ export default function Home() {
   const updateRange = (y: number, m: number, w: number) => {
     const [s, e] = weekRange(y, m, w); setStart(s); setEnd(e);
   };
-  const updatePlay = (idx: number, patch: Partial<Play>) => setPlays(v => v.map((p, i) => i === idx ? { ...p, ...patch } : p));
+  const updatePlay = (idx: number, patch: Partial<Play>) => {
+    if (patch.approved === false) setWeeklyLearning("");
+    setPlays(v => v.map((p, i) => i === idx ? { ...p, ...patch } : p));
+  };
   const generateFromNote = (idx: number, note: string) => {
     if (!note.trim()) return;
     setPlays(current => current.map((p, i) => {
@@ -242,8 +245,9 @@ export default function Home() {
   const publishDraft = (idx: number, title: string, description: string) => {
     const next = plays.map((play, i) => i === idx ? { ...play, title, description, publishedTitle: title, publishedDescription: description, approved: true } : play);
     setPlays(next);
-    setWeeklyLearning(makeWeeklyLearning(next, theme));
+    if (next.every(play => play.approved)) setWeeklyLearning(makeWeeklyLearning(next, theme));
   };
+  const allPlaysApproved = plays.every(play => play.approved);
   const missing = useMemo(() => {
     const items: string[] = [];
     if (!title.trim()) items.push("상단 제목");
@@ -412,7 +416,7 @@ export default function Home() {
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
-      <section className="play-editor weekly-editor"><RichColorEditor label="놀이를 통한 배움 타이틀" html={learningTitleHtml} onChange={(html)=>setLearningTitleHtml(html)} /><label>한 주 전체 배움 내용 <span className="description-guide">확인된 모든 놀이를 종합해 자동 생성되며 직접 수정할 수 있습니다 · 최대 5줄</span><textarea rows={5} value={weeklyLearning} onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
+      <section className="play-editor weekly-editor"><RichColorEditor label="놀이를 통한 배움 타이틀" html={learningTitleHtml} onChange={(html)=>setLearningTitleHtml(html)} /><label>한 주 전체 배움 내용 <span className="description-guide">{allPlaysApproved?"모든 놀이를 종합해 생성되었습니다 · 직접 수정 가능 · 최대 5줄":"모든 놀이 설명을 확인하면 마지막에 자동 생성됩니다"}</span><textarea rows={5} value={weeklyLearning} disabled={!allPlaysApproved} placeholder="모든 놀이 설명 확인 후 생성" onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
       <section className="play-editor logo-editor"><div className="section-title"><b>어린이집 로고</b><span>패널 제일 하단에 표시됩니다</span></div><label className="upload background-upload"><span>{logoImage?"로고 이미지 변경":"＋ 로고 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={uploadLogo}/></label>{logoImage&&<button className="text-btn" onClick={()=>setLogoImage(null)}>로고 삭제</button>}</section>
       {plays.length<6&&<button className="add-play" onClick={()=>setPlays(v=>[...v,makePlay(v.length)])}>＋ 놀이 하나 더 추가</button>}
     </aside>
