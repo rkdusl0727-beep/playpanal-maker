@@ -122,6 +122,18 @@ const htmlToPptRuns = (html: string, fallback: string) => {
   return runs;
 };
 
+const containedImageRect = (src: string, x: number, y: number, w: number, h: number) => new Promise<{x:number;y:number;w:number;h:number}>((resolve) => {
+  const image = new Image();
+  image.onload = () => {
+    const scale = Math.min(w / image.naturalWidth, h / image.naturalHeight);
+    const fittedW = image.naturalWidth * scale;
+    const fittedH = image.naturalHeight * scale;
+    resolve({ x: x + (w - fittedW) / 2, y: y + (h - fittedH) / 2, w: fittedW, h: fittedH });
+  };
+  image.onerror = () => resolve({ x, y, w, h });
+  image.src = src;
+});
+
 function RichColorEditor({ html, onChange, label }: { html: string; onChange: (html: string, text: string) => void; label: string }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const rangeRef = useRef<Range | null>(null);
@@ -270,7 +282,7 @@ export default function Home() {
       { x: .32, y: 4.0, w: 3.7, h: 2.7 }, { x: 4.22, y: 4.0, w: 3.7, h: 2.7 },
       { x: .32, y: 6.88, w: 7.6, h: 2.02 },
     ];
-    plays.slice(0, 5).forEach((p, i) => {
+    for (const [i, p] of plays.slice(0, 5).entries()) {
       const box = positions[i];
       const wide = i === 4;
       const photoX = box.x, photoY = box.y;
@@ -294,11 +306,14 @@ export default function Home() {
       const textW = wide ? 4.0 : box.w;
       slide.addText(p.publishedTitle, { x: textX, y: textY, w: textW, h: .26, fontFace: "Freesentation", fontSize: wide ? 12 : 10.5, bold: true, align: "center", color: "172332", margin: 0, breakLine: false });
       const coverW = wide ? .72 : .62;
-      if (p.isBookPlay && p.bookCover) slide.addImage({ data: p.bookCover.src, x: textX, y: textY + .31, w: coverW, h: wide ? 1.02 : .92 });
+      if (p.isBookPlay && p.bookCover) {
+        const coverRect = await containedImageRect(p.bookCover.src, textX, textY + .31, coverW, wide ? 1.02 : .92);
+        slide.addImage({ data: p.bookCover.src, ...coverRect });
+      }
       const descX = p.isBookPlay ? textX + coverW + .08 : textX;
       const descW = p.isBookPlay ? textW - coverW - .08 : textW;
       slide.addText(p.publishedDescription, { x: descX, y: textY + .31, w: descW, h: wide ? 1.18 : 1.05, fontFace: "Freesentation", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
-    });
+    }
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
     slide.addText(htmlToPptRuns(learningTitleHtml, "#075f9b"), { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, margin: 0 });
     slide.addText(weeklyLearning, { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 10.5, bold: true, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
