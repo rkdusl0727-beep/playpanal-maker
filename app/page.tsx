@@ -141,8 +141,10 @@ const naturalizeNote = (note: string, playTitle: string) => {
   if (/모자이크/.test(context) && /(모빌|교실\s*천장)/.test(context) && /(빗방울|물방울)/.test(context) && /색종이/.test(context)) {
     return "비 오는 날씨를 보며 빗방울의 모습을 표현해보았어요. 빗방울 도안에 남색, 파란색, 하늘색 색종이를 찢어 붙여 모자이크로 꾸미고, 완성한 작품을 모빌로 만들어 교실 천장에 매달았답니다. 천장에 매단 알록달록한 색종이 모빌을 살펴보며 느낀 점을 자연스럽게 나누어보았어요.";
   }
-  if (/(비오는날|비 오는 날)/.test(context) && /(하늘정원|옥상정원)/.test(context) && /물웅덩이/.test(context) && /우산/.test(context)) {
-    return "비 오는 날 하늘정원에 올라가 빗소리를 듣고, 떨어지는 빗방울과 물웅덩이를 관찰했어요. 교실로 돌아와 크레파스로 빗방울과 물웅덩이를, 물감으로 배경을 칠해 비 오는 풍경을 표현했답니다. 물감 위로 나타난 빗방울을 살펴보고 우산 쓴 자신의 모습을 붙이며 비 오는 날의 풍경을 자유롭게 표현해 볼 수 있었어요.";
+  if (/(비\s*가?\s*오는|비오는|비 오는)/.test(context) && /(하늘정원|옥상정원)/.test(context) && /물웅덩이/.test(context) && /우산/.test(context)) {
+    const secretPicture = /비밀\s*그림/.test(context) ? " 물감으로 배경을 칠하자 비밀 그림처럼 빗방울이 나타나는 과정을 경험했답니다." : " 물감으로 배경을 칠해 비 오는 풍경을 표현했답니다.";
+    const feeling = /즐거워함|기뻐/.test(context) ? " 즐거움을 느끼며" : "";
+    return `비가 오는 날씨에 하늘정원으로 가서 우산을 쓰고 비 오는 풍경을 탐색해보았어요. 교실로 돌아와 하늘정원에서 본 비 오는 모습을 크레파스로 그리고, 빗방울과 물웅덩이를 그린 후${secretPicture} 물감 위로 드러나는 빗방울을 살펴보고 우산 쓴 자신의 모습을 그 위에 붙이며${feeling} 비 오는 날의 풍경을 표현해 볼 수 있었어요.`;
   }
   if (/분필/.test(context) && /(하늘정원|옥상정원|옥상|정원)/.test(context) && /바닥/.test(context)) {
     const sea = /바다생물|바다 생물|물고기|거북이/.test(context);
