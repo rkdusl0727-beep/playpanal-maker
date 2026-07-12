@@ -106,6 +106,62 @@ export default function Home() {
     const a = document.createElement("a"); a.download = `${theme}-놀이패널.png`; a.href = canvas.toDataURL("image/png"); a.click();
   };
 
+  const exportPpt = async () => {
+    const { default: PptxGenJS } = await import("pptxgenjs");
+    const pptx = new PptxGenJS();
+    pptx.defineLayout({ name: "A4_PORTRAIT", width: 8.267, height: 11.693 });
+    pptx.layout = "A4_PORTRAIT";
+    pptx.author = "어진반";
+    pptx.subject = `${theme} 주간 놀이 패널`;
+    pptx.title = title;
+    pptx.company = "어진반";
+    pptx.lang = "ko-KR";
+    pptx.theme = { headFontFace: "Arial", bodyFontFace: "Arial", lang: "ko-KR" };
+    const slide = pptx.addSlide();
+    slide.background = { color: "DDF5FF" };
+    slide.addShape(pptx.ShapeType.arc, { x: 6.65, y: .55, w: 2.2, h: 2.2, rotate: 18, fill: { color: "B8E8FA", transparency: 25 }, line: { color: "B8E8FA", transparency: 100 } });
+    slide.addShape(pptx.ShapeType.arc, { x: -.6, y: 9.1, w: 2.2, h: 2.2, rotate: 205, fill: { color: "8FD2F0", transparency: 35 }, line: { color: "8FD2F0", transparency: 100 } });
+    slide.addText(title, { x: .32, y: .22, w: 4.8, h: .35, fontFace: "Arial", fontSize: 22, bold: true, color: "172332", margin: 0, breakLine: false });
+    slide.addText(theme, { x: .32, y: .64, w: 3.1, h: .28, fontFace: "Arial", fontSize: 15, bold: true, color: "0877BD", margin: 0 });
+    slide.addText(`놀이기간: ${month}월 ${week}주(${pretty(start)} ~ ${pretty(end)})`, { x: 4.55, y: .48, w: 3.35, h: .27, fontFace: "Arial", fontSize: 9.5, bold: true, align: "right", color: "172332", margin: 0 });
+
+    const positions = [
+      { x: .32, y: 1.12, w: 3.7, h: 2.7 }, { x: 4.22, y: 1.12, w: 3.7, h: 2.7 },
+      { x: .32, y: 4.0, w: 3.7, h: 2.7 }, { x: 4.22, y: 4.0, w: 3.7, h: 2.7 },
+      { x: .32, y: 6.88, w: 7.6, h: 2.02 },
+    ];
+    plays.slice(0, 5).forEach((p, i) => {
+      const box = positions[i];
+      const wide = i === 4;
+      const photoX = box.x, photoY = box.y;
+      const photoW = wide ? 3.42 : box.w;
+      const photoH = wide ? 1.45 : 1.15;
+      const gap = .025;
+      const cellW = (photoW - gap * 2) / 3;
+      const cellH = (photoH - gap) / 2;
+      p.photos.forEach((ph, j) => {
+        const x = photoX + (j % 3) * (cellW + gap);
+        const y = photoY + Math.floor(j / 3) * (cellH + gap);
+        if (ph) slide.addImage({ data: ph.src, x, y, w: cellW, h: cellH });
+        else {
+          slide.addShape(pptx.ShapeType.rect, { x, y, w: cellW, h: cellH, fill: { color: "FFFFFF", transparency: 38 }, line: { color: "FFFFFF", transparency: 100 } });
+          slide.addText(String(j + 1), { x, y: y + cellH / 2 - .07, w: cellW, h: .14, fontSize: 7, bold: true, align: "center", color: "65A6C3", margin: 0 });
+        }
+      });
+      const textX = wide ? box.x + 3.6 : box.x;
+      const textY = wide ? box.y : box.y + 1.24;
+      const textW = wide ? 4.0 : box.w;
+      slide.addText(p.title, { x: textX, y: textY, w: textW, h: .26, fontFace: "Arial", fontSize: wide ? 12 : 10.5, bold: true, align: "center", color: "172332", margin: 0, breakLine: false });
+      slide.addText(p.description, { x: textX, y: textY + .31, w: textW, h: wide ? .61 : .48, fontFace: "Arial", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
+      slide.addShape(pptx.ShapeType.roundRect, { x: textX, y: textY + (wide ? .98 : .85), w: textW, h: wide ? .61 : .55, rectRadius: .04, fill: { color: "FFFFFF", transparency: 42 }, line: { color: "FFFFFF", transparency: 100 } });
+      slide.addText([{ text: "놀이를 통한 배움\n", options: { bold: true, color: "0871AA" } }, { text: p.learning, options: { color: "172332" } }], { x: textX + .07, y: textY + (wide ? 1.03 : .9), w: textW - .14, h: wide ? .5 : .44, fontFace: "Arial", fontSize: wide ? 7.5 : 6.8, margin: 0, breakLine: false, fit: "shrink" });
+    });
+    slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
+    slide.addText("놀이를 통한 배움", { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "Arial", fontSize: 17, bold: true, color: "075F9B", margin: 0 });
+    slide.addText(plays.map(p => p.learning).join(" "), { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Arial", fontSize: 8.5, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
+    await pptx.writeFile({ fileName: `${theme}-놀이패널.pptx` });
+  };
+
   return <main className="app-shell">
     <aside className="editor no-print">
       <div className="editor-head"><p className="eyebrow">PLAY PANEL MAKER</p><h1>주간 놀이 패널</h1><p>내용을 입력하면 오른쪽 A4 패널에 바로 반영됩니다.</p></div>
@@ -138,7 +194,7 @@ export default function Home() {
     </aside>
 
     <section className="preview-area">
-      <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button disabled={!!missing.length} onClick={()=>window.print()}>PDF 출력</button><button className="primary" disabled={!!missing.length} onClick={exportPng}>이미지 저장</button></div></div>
+      <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button disabled={!!missing.length} onClick={()=>window.print()}>PDF 출력</button><button disabled={!!missing.length} onClick={exportPpt}>PPT 다운로드</button><button className="primary" disabled={!!missing.length} onClick={exportPng}>이미지 저장</button></div></div>
       {!!missing.length&&<div className="missing no-print"><b>출력 전 확인:</b> {missing.slice(0,4).join(", ")}{missing.length>4&&` 외 ${missing.length-4}개`}</div>}
       <article className="panel" ref={panelRef}>
         <header className="panel-header"><div><h2>{title}</h2><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
