@@ -178,11 +178,27 @@ export default function Home() {
   const [backgroundY, setBackgroundY] = useState(50);
   const [logoImage, setLogoImage] = useState<string | null>("/kindergarten-logo.png");
   const panelRef = useRef<HTMLDivElement>(null);
+  const generationTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
   const updateRange = (y: number, m: number, w: number) => {
     const [s, e] = weekRange(y, m, w); setStart(s); setEnd(e);
   };
   const updatePlay = (idx: number, patch: Partial<Play>) => setPlays(v => v.map((p, i) => i === idx ? { ...p, ...patch } : p));
+  const updateNoteAndGenerate = (idx: number, note: string) => {
+    updatePlay(idx, { note, approved: false });
+    clearTimeout(generationTimers.current[idx]);
+    if (!note.trim()) {
+      updatePlay(idx, { title: "", description: "", approved: false });
+      return;
+    }
+    generationTimers.current[idx] = setTimeout(() => {
+      setPlays(current => current.map((p, i) => {
+        if (i !== idx) return p;
+        const generatedTitle = makeNewspaperTitle(note, "", p.isBookPlay);
+        return { ...p, title: generatedTitle, description: naturalizeNote(note, generatedTitle), approved: false };
+      }));
+    }, 700);
+  };
   const missing = useMemo(() => {
     const items: string[] = [];
     if (!title.trim()) items.push("상단 제목");
@@ -231,18 +247,6 @@ export default function Home() {
   const applyMonthBackground = (m: number) => {
     const bg = monthlyBackgrounds[m - 1];
     setBackgroundCss(bg.css); setBackgroundColor(`#${bg.color}`); setBackgroundImage(null);
-  };
-
-  const generate = (idx: number) => {
-    const p = plays[idx];
-    const source = p.note.trim();
-    if (!source) return;
-    const newspaperTitle = makeNewspaperTitle(source, p.title, p.isBookPlay);
-    updatePlay(idx, {
-      title: newspaperTitle,
-      description: naturalizeNote(source, newspaperTitle),
-      approved: false,
-    });
   };
 
   const exportPng = async () => {
@@ -352,8 +356,8 @@ export default function Home() {
         <div className="section-title"><b>{pi+1}. 놀이 기록</b>{plays.length>5&&<button className="text-btn" onClick={()=>setPlays(v=>v.filter((_,i)=>i!==pi))}>삭제</button>}</div>
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload"><span>{p.bookCover?"표지 이미지 변경":"＋ 표지 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
-        <label>놀이 메모 <span className="description-guide">채팅하듯 핵심 행동과 아이들의 반응을 편하게 적어 주세요</span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value})} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        <button className="ai-button" disabled={!p.note.trim()} onClick={()=>generate(pi)}>{p.note.trim()?"✦ 놀이신문 제목·설명 만들기":"놀이 메모를 먼저 입력해 주세요"}</button>
+        <label>놀이 메모 <span className="description-guide">채팅하듯 핵심 행동과 아이들의 반응을 편하게 적어 주세요</span><textarea value={p.note} onChange={e=>updateNoteAndGenerate(pi,e.target.value)} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
+        <div className={`auto-generate-status ${p.note.trim()?"active":""}`}>{p.note.trim()?"입력을 멈추면 제목과 설명이 자동으로 만들어집니다":"메모를 입력하면 자동으로 만들어집니다"}</div>
         {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>확인하고 필요한 부분만 고쳐 주세요</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">따뜻한 놀이신문 문체 · 2~3문장 ({p.description.trim().length}자)</span><textarea rows={4} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>updatePlay(pi,{approved:true,publishedTitle:p.title,publishedDescription:p.description})}>{p.approved?"✓ 반영 완료":"확인 후 반영"}</button></div>}
         <div className="photo-count-row"><p className="mini-label">사진 데이터는 항상 8칸 · 사용하지 않는 칸은 null 저장</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si}>
