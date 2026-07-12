@@ -11,6 +11,8 @@ type Play = {
   note: string;
   approved: boolean;
   photos: Photo[];
+  isBookPlay: boolean;
+  bookCover: Photo;
 };
 
 const samples = [
@@ -44,6 +46,8 @@ const makePlay = (i: number): Play => ({
   note: "",
   approved: true,
   photos: Array(6).fill(null),
+  isBookPlay: i === 1,
+  bookCover: null,
 });
 
 function weekRange(year: number, month: number, week: number) {
@@ -142,7 +146,9 @@ export default function Home() {
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
       else if (p.description.trim().length < 55) items.push(`${i + 1}번 놀이 설명 3줄 이상`);
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
+      if (p.isBookPlay && !p.bookCover) items.push(`${i + 1}번 그림책 표지`);
     });
+    if (!plays.some(p => p.isBookPlay)) items.push("그림책 활동 1개 이상");
     if (!weeklyLearning.trim()) items.push("한 주 전체 놀이를 통한 배움");
     return items;
   }, [title, theme, start, end, plays, weeklyLearning]);
@@ -158,6 +164,13 @@ export default function Home() {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = () => setBackgroundImage(String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
+  const uploadBookCover = (e: ChangeEvent<HTMLInputElement>, pi: number) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => updatePlay(pi, { bookCover: { src: String(reader.result), x: 50, y: 50 } });
     reader.readAsDataURL(file);
   };
 
@@ -235,7 +248,11 @@ export default function Home() {
       const textY = wide ? box.y : box.y + 1.24;
       const textW = wide ? 4.0 : box.w;
       slide.addText(p.title, { x: textX, y: textY, w: textW, h: .26, fontFace: "Freesentation", fontSize: wide ? 12 : 10.5, bold: true, align: "center", color: "172332", margin: 0, breakLine: false });
-      slide.addText(p.description, { x: textX, y: textY + .31, w: textW, h: wide ? 1.18 : 1.05, fontFace: "Freesentation", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
+      const coverW = wide ? .72 : .62;
+      if (p.isBookPlay && p.bookCover) slide.addImage({ data: p.bookCover.src, x: textX, y: textY + .31, w: coverW, h: wide ? 1.02 : .92 });
+      const descX = p.isBookPlay ? textX + coverW + .08 : textX;
+      const descW = p.isBookPlay ? textW - coverW - .08 : textW;
+      slide.addText(p.description, { x: descX, y: textY + .31, w: descW, h: wide ? 1.18 : 1.05, fontFace: "Freesentation", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
     });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
     slide.addText("놀이를 통한 배움", { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, color: learningTitleColor.replace("#", "").toUpperCase(), margin: 0 });
@@ -265,6 +282,8 @@ export default function Home() {
       {plays.map((p, pi) => <section className="play-editor" id={`edit-${p.id}`} key={p.id}>
         <div className="section-title"><b>{pi+1}. {p.title || "제목 없음"}</b>{plays.length>5&&<button className="text-btn" onClick={()=>setPlays(v=>v.filter((_,i)=>i!==pi))}>삭제</button>}</div>
         <label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value})}/></label>
+        <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
+        {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload"><span>{p.bookCover?"표지 이미지 변경":"＋ 표지 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>교사 관찰 메모<textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value})} placeholder="아이들의 말, 행동, 놀이 흐름을 적어주세요."/></label>
         <button className="ai-button" onClick={()=>generate(pi)}>✦ AI 문장 만들기</button>
         <label>놀이에 대한 설명 <span className="description-guide">3줄 이상 · 최대 6줄 권장 ({p.description.trim().length}자)</span><textarea rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label>
@@ -284,9 +303,9 @@ export default function Home() {
       {!!missing.length&&<div className="missing no-print"><b>출력 전 확인:</b> {missing.slice(0,4).join(", ")}{missing.length>4&&` 외 ${missing.length-4}개`}</div>}
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
         <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
-        <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i}`} key={p.id}>
+        <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i} ${p.isBookPlay?"has-book-card":""}`} key={p.id}>
           <div className="photo-grid">{p.photos.map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
-          <div className="play-copy"><h4>{p.title}</h4><p>{p.description}</p></div>
+          <div className={`play-copy ${p.isBookPlay?"book-copy":""}`}><h4>{p.title}</h4>{p.isBookPlay?<div className="book-copy-body"><div className="book-cover-slot">{p.bookCover?<img src={p.bookCover.src} alt={`${p.title} 그림책 표지`} style={{objectPosition:`${p.bookCover.x}% ${p.bookCover.y}%`}}/>:<span>그림책<br/>표지</span>}</div><p>{p.description}</p></div>:<p>{p.description}</p>}</div>
         </section>)}</div>
         <footer><b style={{color:learningTitleColor}}>놀이를 통한 배움</b><p>{weeklyLearning}</p></footer>
       </article>
