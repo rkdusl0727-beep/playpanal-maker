@@ -301,16 +301,15 @@ const makeWeeklyLearning = (allPlays: Play[], theme: string) => {
   ].filter(([pattern]) => (pattern as RegExp).test(source)).map(([, label]) => label as string).slice(0, 4);
   const subject = joinKorean([...new Set(elements)]);
   const seasonal = /여름|태양|바다|비|파도/.test(`${theme} ${source}`)
-    ? "계절의 특징을 자연스럽게 알아보았어요"
+    ? "놀이 속에서 계절의 특징을 자연스럽게 알아보았어요"
     : `${theme}에 담긴 특징을 자연스럽게 발견해보았어요`;
   const learningLines = [
-    `이번 주에 유아들은 ${withObject(subject)} 여러 재료와 방법으로 살펴보며 놀이를 시작했어요.`,
-    `놀이 속에서 발견한 모습과 소리를 서로 비교해 보면서 ${seasonal}.`,
-    "재료와 도구의 특성을 알아가며 떠오른 생각과 느낌을 자신만의 방법으로 표현했답니다.",
-    "친구의 표현을 존중하고 이야기를 나누는 과정에서 함께 놀이를 풍성하게 만들어갔어요.",
-    "필요한 도구를 안전하게 사용하고, 관심이 이어지는 방향으로 스스로 놀이를 확장해 볼 수 있었어요.",
+    `이번 주에 유아들은 ${subject}와 관련된 모습을 여러 재료와 방법으로 탐색하며 ${seasonal}.`,
+    "다양한 미술 재료와 도구를 활용해 떠오른 생각과 느낌을 자신만의 방법으로 창의적으로 표현하고,",
+    "친구들과 함께 풍경과 소리를 만들며 서로의 표현을 감상하는 과정에서",
+    "즐겁게 소통하고 협력하며 놀이를 풍성하게 이어가는 경험을 해보았습니다.",
   ];
-  return learningLines.join("\n");
+  return learningLines.join(" ");
 };
 
 const saveBlobWithPicker = async (blob: Blob, suggestedName: string) => {
