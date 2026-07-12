@@ -74,15 +74,47 @@ const pretty = (iso: string) => {
 
 const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
-  if (/분필/.test(context) && /바닥|옥상|정원/.test(context)) return "아이들은 넓은 바닥을 커다란 도화지 삼아 야외용 분필로 떠오른 풍경을 그려보았어요. 다양한 색과 선으로 자신의 생각과 느낌을 자유롭게 표현해보았답니다.";
-  if (/물감/.test(context) && /빨대|불어/.test(context)) return "아이들은 여러 색의 물감을 섞어 달라지는 모습을 살펴보고, 빨대로 물감을 불어 새로운 무늬를 만들어보았어요. 재료의 변화를 탐색하며 떠오른 생각을 자신만의 방법으로 표현했답니다.";
-  if (/비|빗방울|수채|번짐/.test(context)) return "아이들은 비 오는 날의 모습과 느낌을 떠올리며 물감이 번지는 모습을 살펴보았어요. 색이 만나 달라지는 과정을 즐기며 자신의 경험을 그림으로 표현해보았답니다.";
-  if (/소리|노래|악기|리듬/.test(context)) return "아이들은 주변에서 들리는 여러 소리에 귀 기울이고 몸짓과 도구로 느낌을 나타내보았어요. 서로의 소리를 듣고 생각을 나누며 즐겁게 놀이를 이어갔답니다.";
-  if (/책|그림책|이야기/.test(context)) return "아이들은 그림책 속 장면을 찬찬히 살펴보고 기억에 남은 이야기를 자신의 경험과 연결해보았어요. 떠오른 생각과 느낌을 말과 그림으로 자유롭게 표현했답니다.";
-  if (/블록|쌓|구성|만들/.test(context)) return "아이들은 필요한 재료를 고르고 여러 방법을 시도하며 생각한 모습을 만들어보았어요. 친구와 의견을 나누고 방법을 조절하며 함께 놀이를 완성해갔답니다.";
-  if (/자연|꽃|나무|나뭇잎|숲|계절/.test(context)) return "아이들은 주변의 자연과 계절 변화를 천천히 살펴보며 눈에 띄는 모습을 발견해보았어요. 관찰한 특징을 서로 이야기하고 다양한 방법으로 표현해보았답니다.";
-  if (/그림|색|미술|꾸미|표현/.test(context)) return "아이들은 여러 가지 미술 재료를 살펴보고 떠오른 생각을 자신만의 방법으로 표현해보았어요. 색과 모양을 자유롭게 구성하며 표현하는 즐거움을 느껴보았답니다.";
-  return "아이들은 관심 있는 재료와 방법을 스스로 선택하고 궁금한 점을 놀이로 탐색해보았어요. 친구와 생각을 나누며 새로운 방법을 발견하고 즐겁게 경험을 넓혀갔답니다.";
+  const details = note.trim().split(/[.\n]+/).map(part => part.trim()).filter(Boolean).map(part => {
+    let sentence = part
+      .replace(/^유아들은?\s*/, "아이들은 ")
+      .replace(/^유아가\s*/, "아이가 ")
+      .replace(/을 가지고/g, "을 들고")
+      .replace(/를 가지고/g, "를 활용해")
+      .replace(/으로 가서/g, "으로 나가")
+      .replace(/여름풍경을 바닥에/g, "바닥에 여름 풍경을")
+      .replace(/거북이\s*물고기\s*등\s*다양하게\s*그림$/g, "거북이와 물고기 등 다양한 모습을 그려 넣었답니다")
+      .replace(/그려봄$/g, "그려보았어요")
+      .replace(/해봄$/g, "해보았어요")
+      .replace(/만들어봄$/g, "만들어보았어요")
+      .replace(/관찰함$/g, "관찰해보았어요")
+      .replace(/표현함$/g, "표현해보았어요")
+      .replace(/했음$/g, "했어요")
+      .replace(/함$/g, "해보았어요")
+      .replace(/그림$/g, "그려보았어요");
+    if (!/^(아이들|아이가|친구들|어린이들)/.test(sentence)) sentence = `아이들은 ${sentence}`;
+    return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+  });
+  let learning = [
+    "놀이에 필요한 재료와 방법을 스스로 선택하며 활동을 즐겁게 이어갔어요.",
+    "친구와 서로의 생각을 나누고 다른 표현을 존중하며 함께 놀이했답니다.",
+    "놀이 속에서 궁금한 점을 살펴보고 자신이 발견한 내용을 자연스럽게 표현해보았어요.",
+  ];
+  if (/그림|색|물감|분필|미술|꾸미|표현/.test(context)) learning = [
+    "넓은 공간을 도화지처럼 활용하며 색과 선이 만들어내는 변화를 탐색해보았어요.",
+    "친구들이 표현한 모습을 서로 살펴보고 각자의 생각과 느낌을 이야기해보았답니다.",
+    "계절과 경험에서 떠오른 장면을 자신만의 방법으로 표현하는 즐거움을 느껴보았어요.",
+  ];
+  else if (/소리|노래|악기|리듬/.test(context)) learning = [
+    "서로 다른 소리의 크기와 느낌에 귀 기울이며 특징을 비교해보았어요.",
+    "친구가 만든 소리를 듣고 생각을 나누며 함께 놀이를 이어갔답니다.",
+    "주변에서 발견한 소리를 몸짓과 도구로 자유롭게 표현해보았어요.",
+  ];
+  else if (/책|그림책|이야기/.test(context)) learning = [
+    "그림책 속 장면을 찬찬히 살펴보고 기억에 남은 내용을 이야기해보았어요.",
+    "이야기를 자신의 경험과 연결하며 친구와 생각을 나누어보았답니다.",
+    "떠오른 느낌과 생각을 말과 그림으로 자유롭게 표현해보았어요.",
+  ];
+  return [...details, ...learning].join(" ");
 };
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
@@ -312,7 +344,7 @@ export default function Home() {
       }
       const descX = p.isBookPlay ? textX + coverW + .08 : textX;
       const descW = p.isBookPlay ? textW - coverW - .08 : textW;
-      slide.addText(p.publishedDescription, { x: descX, y: textY + .31, w: descW, h: wide ? 1.18 : 1.05, fontFace: "Freesentation", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
+      slide.addText(p.publishedDescription, { x: descX, y: textY + .31, w: descW, h: wide ? 1.18 : 1.05, fontFace: "Freesentation", fontSize: wide ? 10 : 9.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
     }
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
     slide.addText(htmlToPptRuns(learningTitleHtml, "#075f9b"), { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, margin: 0 });
