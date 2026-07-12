@@ -553,8 +553,20 @@ export default function Home() {
     const stylesheetText = Array.from(document.styleSheets).flatMap(sheet => {
       try { return Array.from(sheet.cssRules).map(rule => rule.cssText); } catch { return []; }
     }).join("\n");
+    const fontData = async (path: string) => {
+      try {
+        const buffer = await fetch(path).then(response => response.arrayBuffer());
+        let binary = ""; const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+        return `data:font/ttf;base64,${btoa(binary)}`;
+      } catch { return path; }
+    };
+    const [cookieRun, freeRegular, freeMedium] = await Promise.all([
+      fontData("/fonts/CookieRun-Black.ttf"), fontData("/fonts/Freesentation-Regular.ttf"), fontData("/fonts/Freesentation-Medium.ttf"),
+    ]);
+    const embeddedFonts = `@font-face{font-family:'CookieRun Black';src:url('${cookieRun}') format('truetype');font-weight:900}@font-face{font-family:'Freesentation';src:url('${freeRegular}') format('truetype');font-weight:400}@font-face{font-family:'Freesentation';src:url('${freeMedium}') format('truetype');font-weight:500}`;
     const xml = new XMLSerializer().serializeToString(clone);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><foreignObject width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml"><style>${stylesheetText}</style>${xml}</div></foreignObject></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><foreignObject width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml"><style>${embeddedFonts}${stylesheetText}</style>${xml}</div></foreignObject></svg>`;
     const img = new Image(); img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     await img.decode();
     const canvas = document.createElement("canvas"); canvas.width = 1588; canvas.height = 2246;
