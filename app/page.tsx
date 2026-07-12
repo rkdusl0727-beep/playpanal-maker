@@ -252,6 +252,18 @@ const naturalizeNote = (note: string, playTitle: string) => {
   return finalizeDescription(story);
 };
 
+const preserveMemoCore = (note: string, story: string) => {
+  const coreTerms = [
+    "하늘정원", "옥상정원", "교실", "운동장", "바닥", "천장", "우산", "빗소리", "빗방울", "물웅덩이", "비밀그림",
+    "크레파스", "분필", "물감", "습자지", "색종이", "우드락", "연필", "빨대", "블록", "악기", "놀잇감", "판화", "모자이크", "모빌",
+    "태양", "구름", "파도", "물고기", "거북이", "여름 과일", "수박", "참외", "매미", "천둥", "소리", "그림책", "책 표지", "합동 그림", "협동 작품",
+  ];
+  const missing = coreTerms.filter(term => note.includes(term) && !story.includes(term));
+  if (!missing.length) return story;
+  const joined = missing.slice(0, 7).join(", ");
+  return finalizeDescription(`${story.replace(/[.!?]\s*$/, "")} ${joined} 장면을 함께 살펴보며 놀이를 이어가보았어요.`);
+};
+
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
   const source = `${note} ${currentTitle}`.replace(/\s+/g, " ");
   if (/모자이크/.test(source) && /모빌/.test(source) && /물방울/.test(source)) return "알록달록 모자이크 물방울 모빌";
@@ -419,7 +431,7 @@ export default function Home() {
     setPlays(current => current.map((p, i) => {
       if (i !== idx) return p;
       const generatedTitle = makeNewspaperTitle(note, "", p.isBookPlay);
-      const generatedDescription = fitDescriptionToSixLines(naturalizeNote(note, generatedTitle), p.isBookPlay, idx === 4);
+      const generatedDescription = fitDescriptionToSixLines(preserveMemoCore(note, naturalizeNote(note, generatedTitle)), p.isBookPlay, idx === 4);
       return { ...p, note, title: generatedTitle, description: generatedDescription, approved: false };
     }));
   };
