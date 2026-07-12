@@ -151,6 +151,16 @@ const naturalizeNote = (note: string, playTitle: string) => {
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
   const source = `${note} ${currentTitle}`.replace(/\s+/g, " ");
+  if (/모자이크/.test(source) && /모빌/.test(source) && /물방울/.test(source)) return "알록달록 모자이크 물방울 모빌";
+  if (/모자이크/.test(source) && /모빌/.test(source)) return "알록달록 색종이 모자이크 모빌";
+  if (/우드락|판화|찍어내/.test(source) && /소리/.test(source)) return "여름 소리를 찍어낸 우드락 판화";
+  if (/블록|놀잇감/.test(source) && /여름소리|여름 소리/.test(source)) return "블록과 놀잇감으로 만든 여름 소리";
+  if (/빨대|불어/.test(source) && /물감/.test(source)) return "후후 불어 피어난 물감 그림";
+  if (/비|빗방울/.test(source) && /번지|수채/.test(source)) return "번지는 물감으로 그린 비 오는 날";
+  if (/사진/.test(source) && /만화|장면/.test(source)) return "사진으로 이어 만든 우리들의 만화";
+  if (/물길/.test(source)) return "도구를 이어 만든 시원한 물길";
+  if (/얼음/.test(source) && /그림|색|물감/.test(source)) return "사르르 녹으며 그리는 얼음 그림";
+  if (/자연물|나뭇잎|꽃잎/.test(source) && /꾸미|만들/.test(source)) return "자연물로 완성한 우리들의 작품";
   if (isBookPlay && /소리|말|의성어|의태어/.test(source) && /만화|사진|장면/.test(source)) return "그림책 속 소리를 만화로 담아요";
   if (isBookPlay && /소리|말|의성어|의태어/.test(source)) return "그림책에서 만난 재미있는 소리";
   if (isBookPlay && /태양|햇빛|햇살/.test(source)) return "그림책에서 만난 여름의 태양";
