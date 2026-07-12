@@ -569,7 +569,7 @@ export default function Home() {
   const renderPanelDataUrl = async () => {
     const node = panelRef.current; if (!node) return null;
     const clone = node.cloneNode(true) as HTMLElement;
-    clone.style.width = "794px"; clone.style.height = "1123px"; clone.style.margin = "0"; clone.style.transform = "none";
+    clone.style.width = "794px"; clone.style.height = "auto"; clone.style.minHeight = "1123px"; clone.style.margin = "0"; clone.style.transform = "none"; clone.style.overflow = "visible";
     const originals = [node, ...Array.from(node.querySelectorAll<HTMLElement>("*"))];
     const copies = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>("*"))];
     originals.forEach((original, index) => {
@@ -580,6 +580,12 @@ export default function Home() {
         copy.style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
       }
     });
+    clone.style.height = "auto"; clone.style.minHeight = "1123px"; clone.style.overflow = "visible";
+    const measureHost = document.createElement("div");
+    measureHost.style.cssText = "position:absolute;left:-10000px;top:0;width:794px;visibility:hidden;pointer-events:none;";
+    measureHost.appendChild(clone); document.body.appendChild(measureHost);
+    const renderHeight = Math.max(1123, clone.scrollHeight);
+    measureHost.remove();
     const stylesheetText = Array.from(document.styleSheets).flatMap(sheet => {
       try { return Array.from(sheet.cssRules).map(rule => rule.cssText); } catch { return []; }
     }).join("\n");
@@ -596,7 +602,7 @@ export default function Home() {
     ]);
     const embeddedFonts = `@font-face{font-family:'CookieRun Black';src:url('${cookieRun}') format('truetype');font-weight:900}@font-face{font-family:'Freesentation';src:url('${freeRegular}') format('truetype');font-weight:400}@font-face{font-family:'Freesentation';src:url('${freeMedium}') format('truetype');font-weight:500}`;
     const xml = new XMLSerializer().serializeToString(clone);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><foreignObject width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml"><style>${embeddedFonts}${stylesheetText}</style>${xml}</div></foreignObject></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="${renderHeight}"><foreignObject width="794" height="${renderHeight}"><div xmlns="http://www.w3.org/1999/xhtml"><style>${embeddedFonts}${stylesheetText}</style>${xml}</div></foreignObject></svg>`;
     const img = new Image(); img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     await img.decode();
     const canvas = document.createElement("canvas"); canvas.width = 1588; canvas.height = 2246;
