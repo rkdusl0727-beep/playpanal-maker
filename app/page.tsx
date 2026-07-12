@@ -79,6 +79,7 @@ const finalizeDescription = (value: string) => {
     .replace(/읽고책/g, "읽고 책")
     .replace(/태양을꾸/g, "태양을 꾸")
     .replace(/숨을불어/g, "숨을 불어")
+    .replace(/느낄수/g, "느낄 수")
     .replace(/([가-힣])하고([가-힣])/g, "$1하고 $2")
     .replace(/([가-힣])고([가-힣])/g, "$1고 $2")
     .replace(/(살펴|관찰해|그려|만들어|꾸며|읽어|놀이해|표현해|탐색해|완성해|매달아|붙여|접어|오려|찍어|불어|섞어|칠해|그어|이어|쌓아|놓아|담아|찾아|느껴|만져|흔들어)봄\s*([,，])/g, "$1보고$2")
@@ -96,6 +97,11 @@ const finalizeDescription = (value: string) => {
     .replace(/즐거워함(?=\s*[.!?]|$)/g, "즐거워했답니다")
     .replace(/궁금해함(?=\s*[.!?]|$)/g, "궁금해했어요")
     .replace(/했음(?=\s*[.!?]|$)/g, "했어요")
+    .replace(/있었음(?=\s*[.!?]|$)/g, "있었어요")
+    .replace(/느꼈음(?=\s*[.!?]|$)/g, "느꼈어요")
+    .replace(/즐거웠음(?=\s*[.!?]|$)/g, "즐거웠어요")
+    .replace(/신기했음(?=\s*[.!?]|$)/g, "신기했어요")
+    .replace(/나타냄(?=\s*[.!?]|$)/g, "나타내보았어요")
     .replace(/해봄(?=\s*[.!?]|$)/g, "해보았어요")
     .replace(/만들어봄(?=\s*[.!?]|$)/g, "만들어보았어요")
     .replace(/그려봄(?=\s*[.!?]|$)/g, "그려보았어요")
@@ -158,7 +164,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
     return `「${bookTitle}」를 함께 읽으며 책 표지에 담긴 여름 태양을 살펴보았어요. 습자지를 뭉쳐 태양을 꾸미고, 파란색으로 칠한 구름에는 숨을 불어 우리만의 장면을 완성했답니다. 완성한 작품은 교실 천장에 매달아 감상하며 이야기의 장면을 다시 떠올려보았어요.`;
   }
   if (/우드락/.test(context) && /(판화|찍어|찍는)/.test(context) && /소리/.test(context)) {
-    return "여름 소리 그림책을 함께 읽으며 어떤 소리가 떠오르는지 이야기를 나누어보았어요. 매미와 파도, 빗방울 등 여름의 다양한 소리를 모아 우드락 위에 연필로 선과 모양을 새겨보았답니다. 새긴 판에 물감을 고르게 바르고 종이를 올려 눌러보며 그림이 찍혀 나오는 변화를 살펴보았어요. 저마다 표현한 소리를 서로 감상하며 같은 소리도 다양한 모습으로 나타날 수 있음을 느껴보았어요.";
+    return "여름 소리 그림책을 함께 읽으며 어떤 소리가 떠오르는지 이야기를 나누어보았어요. 매미와 파도, 빗방울 등 여름의 다양한 소리를 모아 우드락 위에 연필로 선과 모양을 새긴 후 물감을 발라 판화를 완성했답니다.";
   }
   if (/(블록|놀잇감)/.test(context) && /(여름소리|여름 소리)/.test(context)) {
     return "다양한 블록과 놀잇감을 살펴보며 친구와 짝을 지어 여름에 들을 수 있는 소리를 함께 떠올려보았어요. 매미, 파도, 빗소리, 천둥, 물방울 소리 등을 몸짓과 말, 도구로 표현하며 서로의 생각을 나누었답니다. 주변에서 들리는 소리의 특징을 비교하고 자신만의 방법으로 나타내는 즐거움을 느꼈어요.";
@@ -238,7 +244,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
     /친구|함께|협동|짝/.test(context) ? "서로의 표현을 이어 보고 의견을 나누며 함께 완성해가는 즐거움도 느껴보았어요." : "완성된 모습을 천천히 살펴보며 놀이 과정에서 느낀 점을 편안하게 나누어보았어요.",
   ];
   let additionIndex = 0;
-  while ((story.length < 135 || (story.match(/[.!?]/g)?.length ?? 0) < 4) && additionIndex < additions.length) {
+  while ((story.length < 105 || (story.match(/[.!?]/g)?.length ?? 0) < 2) && additionIndex < additions.length) {
     if (!story.includes(additions[additionIndex])) story = `${story} ${additions[additionIndex]}`;
     additionIndex += 1;
   }
