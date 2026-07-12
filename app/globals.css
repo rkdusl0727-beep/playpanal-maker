@@ -35,3 +35,4 @@ footer p{max-height:7.75em;display:-webkit-box;-webkit-box-orient:vertical;-webk
 .auto-generate-status{padding:10px 12px;border-radius:9px;background:#f3f7f9;color:#83919a;font-size:12px;font-weight:700;text-align:center}.auto-generate-status.active{background:#eaf6ff;color:#096ba8}
 .book-cover-slot img{object-fit:contain!important;background:rgba(255,255,255,.92)}
 .play-copy>p,.book-copy-body>p{font-size:14px!important;line-height:1.45}
+.memo-guide{display:block;margin-top:3px;padding:10px 12px;border:1px solid #9bcfea;border-radius:9px;background:#eaf6ff;color:#075f9b;font-size:12px;font-weight:800;line-height:1.45}.memo-guide kbd{display:inline-block;padding:2px 7px;border:1px solid #6daecc;border-bottom-width:2px;border-radius:5px;background:#fff;color:#075f9b;font:inherit;font-weight:900}.memo-guide i{padding:0 5px;font-style:normal;color:#65a6c3}
