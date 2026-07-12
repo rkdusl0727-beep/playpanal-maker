@@ -73,20 +73,30 @@ const pretty = (iso: string) => {
 };
 
 const naturalizeNote = (note: string, playTitle: string) => {
-  let observation = note.trim().replace(/\s+/g, " ");
+  let observation = note.trim().replace(/\s+/g, " ").replace(/[.!?]+$/g, "");
   observation = observation
-    .replace(/그려봄$/g, "그려 보았습니다")
-    .replace(/해봄$/g, "해 보았습니다")
-    .replace(/만들어봄$/g, "만들어 보았습니다")
-    .replace(/살펴봄$/g, "살펴보았습니다")
-    .replace(/표현해봄$/g, "표현해 보았습니다")
-    .replace(/했음$/g, "했습니다")
-    .replace(/하였음$/g, "했습니다")
-    .replace(/함$/g, "했습니다")
-    .replace(/만듦$/g, "만들었습니다");
-  if (!/[.!?]$/.test(observation)) observation += ".";
+    .replace(/만들어봄$/g, "만들어 보았어요")
+    .replace(/표현해봄$/g, "표현해 보았어요")
+    .replace(/살펴봄$/g, "살펴보았어요")
+    .replace(/그려봄$/g, "그려 보았어요")
+    .replace(/해봄$/g, "해보았어요")
+    .replace(/했음$/g, "했어요")
+    .replace(/하였음$/g, "했어요")
+    .replace(/관찰함$/g, "관찰했어요")
+    .replace(/탐색함$/g, "탐색해보았어요")
+    .replace(/표현함$/g, "표현해보았어요")
+    .replace(/함$/g, "해보았어요")
+    .replace(/만듦$/g, "만들었어요");
   if (!/^(아이들|유아들|친구들|어린이들)/.test(observation)) observation = `아이들은 ${observation}`;
-  return `${observation} 놀이 과정에서 사용한 재료의 특징을 살펴보고 자신의 생각과 느낌을 다양한 모습으로 표현해 보았습니다. 친구들과 서로의 표현을 바라보고 이야기를 나누며 놀이를 즐겁게 이어 갔습니다.`;
+  if (!/[.!?]$/.test(observation)) observation += ".";
+  const context = `${note} ${playTitle}`;
+  let learning = "놀이 속에서 궁금한 점을 살펴보고 친구와 생각을 나누며 경험을 넓혀보았답니다.";
+  if (/그림|색|물감|분필|미술|꾸미|표현/.test(context)) learning = "다양한 색과 모양으로 자신의 생각과 느낌을 자유롭게 표현해보았답니다.";
+  else if (/소리|노래|악기|리듬/.test(context)) learning = "주변의 소리에 귀 기울이고 서로의 표현을 들으며 즐겁게 소통해보았어요.";
+  else if (/자연|꽃|나무|나뭇잎|숲|계절/.test(context)) learning = "자연과 계절의 변화를 찬찬히 살펴보며 새로운 모습을 발견해보았답니다.";
+  else if (/블록|쌓|구성|만들/.test(context)) learning = "친구와 생각을 나누고 방법을 조절하며 함께 놀이를 만들어가는 즐거움을 느껴보았어요.";
+  else if (/책|그림책|이야기/.test(context)) learning = "이야기를 자신의 경험과 연결하고 생각과 느낌을 말과 그림으로 표현해보았답니다.";
+  return `${observation} ${learning}`;
 };
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
