@@ -14,11 +14,11 @@ type Play = {
 };
 
 const samples = [
-  ["바닥에 표현해 본 여름", "물결과 햇살을 다양한 재료로 표현하며 친구들과 여름 풍경을 만들었어요.", "계절의 특징을 탐색하고, 생각과 느낌을 미술 재료로 자유롭게 표현했습니다."],
-  ["그림책 독후활동 · 여름의 태양", "그림책을 읽고 기억에 남은 여름의 모습을 색과 모양으로 다시 구성했어요.", "이야기를 주의 깊게 듣고 자신의 경험과 연결해 창의적으로 표현했습니다."],
-  ["교실에서 찾은 여름소리", "교실의 물건과 도구를 활용해 빗소리, 파도 소리 등 여름의 소리를 찾아보았어요.", "주변의 소리에 관심을 갖고 여러 사물의 소리를 비교하고 탐색했습니다."],
-  ["여름소리 찍어요 · 만화", "여름 소리를 몸짓과 표정으로 나타내고 사진을 이어 재미있는 만화를 만들었어요.", "소리를 시각적으로 표현하고 친구의 생각을 존중하며 이야기를 함께 구성했습니다."],
-  ["비 오는 날의 수채화", "비 오는 날 창밖의 모습을 관찰하고 번지는 물감으로 빗방울을 표현했어요.", "날씨 변화를 관찰하고 물감의 번짐을 실험하며 아름다움을 느꼈습니다."],
+  ["바닥에 표현해 본 여름", "하늘정원 바닥에 야외용 분필로 여름에 떠오르는 모습을 마음껏 그리고 색칠해 보았어요. 시원한 바다와 물고기, 파도 등을 자유롭게 표현하며 친구들과 함께 커다란 여름 풍경을 완성했습니다.", "계절의 특징을 탐색하고, 생각과 느낌을 미술 재료로 자유롭게 표현했습니다."],
+  ["그림책 독후활동 · 여름의 태양", "여름이 물러온다 그림책을 함께 읽고 기억에 남은 장면을 이야기했어요. 책 표지에 여름 태양을 살펴보고 우리만의 느낌과 색으로 다시 구성하며 다양한 재료의 질감을 경험했습니다.", "이야기를 주의 깊게 듣고 자신의 경험과 연결해 창의적으로 표현했습니다."],
+  ["교실에서 찾은 여름소리", "교실에 있는 다양한 물건과 놀잇감, 도구를 활용해 여름 소리를 찾아보았어요. 파도 소리와 귀뚜라미 소리, 빗소리와 천둥 소리를 직접 만들며 주변 사물의 소리를 비교했습니다.", "주변의 소리에 관심을 갖고 여러 사물의 소리를 비교하고 탐색했습니다."],
+  ["여름소리 찍어요 · 만화", "다양한 여름 소리를 들어보고 느껴지는 소리를 몸짓과 표정으로 나타냈어요. 친구의 모습을 사진으로 찍고 여러 장면을 순서대로 이어 붙이며 여름 소리가 담긴 재미있는 만화를 만들었습니다.", "소리를 시각적으로 표현하고 친구의 생각을 존중하며 이야기를 함께 구성했습니다."],
+  ["비 오는 날의 수채화", "비 오는 날 창밖의 풍경과 빗방울이 떨어지는 모습을 자세히 관찰했어요. 크레파스로 빗방울과 물웅덩이를 그리고 그 위에 물감이 번지는 모습을 실험하며 비 오는 날의 분위기를 표현했습니다.", "날씨 변화를 관찰하고 물감의 번짐을 실험하며 아름다움을 느꼈습니다."],
 ];
 
 const monthlyBackgrounds = [
@@ -93,6 +93,7 @@ export default function Home() {
     plays.forEach((p, i) => {
       if (!p.title.trim()) items.push(`${i + 1}번 놀이 제목`);
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
+      else if (p.description.trim().length < 55) items.push(`${i + 1}번 놀이 설명 3줄 이상`);
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
     });
     if (!weeklyLearning.trim()) items.push("한 주 전체 놀이를 통한 배움");
@@ -121,7 +122,7 @@ export default function Home() {
   const generate = (idx: number) => {
     const p = plays[idx]; const note = p.note.trim() || "아이들이 여름 재료를 탐색하고 친구와 함께 놀이함";
     updatePlay(idx, {
-      description: `${note}. 아이들은 놀이 과정에서 자신의 생각을 자유롭게 표현하고 친구들과 즐겁게 경험을 나누었습니다.`,
+      description: `${note}. 아이들은 놀이에 필요한 재료와 방법을 스스로 선택하고 탐색했습니다. 놀이 과정에서 자신의 생각과 느낌을 자유롭게 표현했으며, 친구의 이야기를 귀 기울여 듣고 서로의 경험을 즐겁게 나누었습니다.`,
       approved: false,
     });
   };
@@ -217,7 +218,7 @@ export default function Home() {
         <label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value})}/></label>
         <label>교사 관찰 메모<textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value})} placeholder="아이들의 말, 행동, 놀이 흐름을 적어주세요."/></label>
         <button className="ai-button" onClick={()=>generate(pi)}>✦ AI 문장 만들기</button>
-        <label>놀이에 대한 설명<textarea value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label>
+        <label>놀이에 대한 설명 <span className="description-guide">3줄 이상 · 최대 6줄 권장 ({p.description.trim().length}자)</span><textarea rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label>
         <button className={p.approved?"approved":"approve"} onClick={()=>updatePlay(pi,{approved:!p.approved})}>{p.approved?"✓ 승인 완료":"문장 확인 후 승인"}</button>
         <p className="mini-label">사진 6칸 · 빈칸은 자동으로 null 저장</p>
         <div className="photo-controls">{p.photos.map((ph,si)=><div className="photo-control" key={si}>
