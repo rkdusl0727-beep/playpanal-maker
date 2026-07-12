@@ -11,6 +11,7 @@ type Play = {
   note: string;
   approved: boolean;
   photos: Photo[];
+  photoCount: 6 | 8;
   isBookPlay: boolean;
   bookCover: Photo;
 };
@@ -45,7 +46,8 @@ const makePlay = (i: number): Play => ({
   learning: samples[i]?.[2] || "놀이를 통해 발견한 배움을 기록해 주세요.",
   note: "",
   approved: true,
-  photos: Array(6).fill(null),
+  photos: Array(8).fill(null),
+  photoCount: 6,
   isBookPlay: i === 1,
   bookCover: null,
 });
@@ -245,11 +247,12 @@ export default function Home() {
       const photoW = wide ? 3.42 : box.w;
       const photoH = wide ? 1.45 : 1.15;
       const gap = .025;
-      const cellW = (photoW - gap * 2) / 3;
+      const columns = p.photoCount === 8 ? 4 : 3;
+      const cellW = (photoW - gap * (columns - 1)) / columns;
       const cellH = (photoH - gap) / 2;
-      p.photos.forEach((ph, j) => {
-        const x = photoX + (j % 3) * (cellW + gap);
-        const y = photoY + Math.floor(j / 3) * (cellH + gap);
+      p.photos.slice(0, p.photoCount).forEach((ph, j) => {
+        const x = photoX + (j % columns) * (cellW + gap);
+        const y = photoY + Math.floor(j / columns) * (cellH + gap);
         if (ph) slide.addImage({ data: ph.src, x, y, w: cellW, h: cellH });
         else {
           slide.addShape(pptx.ShapeType.rect, { x, y, w: cellW, h: cellH, fill: { color: "FFFFFF", transparency: 38 }, line: { color: "FFFFFF", transparency: 100 } });
@@ -300,8 +303,8 @@ export default function Home() {
         <button className="ai-button" disabled={!p.note.trim()} onClick={()=>generate(pi)}>✦ 자연스러운 놀이 설명 만들기</button>
         <label>놀이에 대한 설명 <span className="description-guide">3줄 이상 · 최대 6줄 권장 ({p.description.trim().length}자)</span><textarea rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label>
         <button className={p.approved?"approved":"approve"} onClick={()=>updatePlay(pi,{approved:!p.approved})}>{p.approved?"✓ 승인 완료":"문장 확인 후 승인"}</button>
-        <p className="mini-label">사진 6칸 · 빈칸은 자동으로 null 저장</p>
-        <div className="photo-controls">{p.photos.map((ph,si)=><div className="photo-control" key={si}>
+        <div className="photo-count-row"><p className="mini-label">사진 데이터는 항상 8칸 · 사용하지 않는 칸은 null 저장</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
+        <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
@@ -316,7 +319,7 @@ export default function Home() {
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
         <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i} ${p.isBookPlay?"has-book-card":""}`} key={p.id}>
-          <div className="photo-grid">{p.photos.map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
+          <div className={`photo-grid photos-${p.photoCount}`}>{p.photos.slice(0,p.photoCount).map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
           <div className={`play-copy ${p.isBookPlay?"book-copy":""}`}><h4>{p.title}</h4>{p.isBookPlay?<div className="book-copy-body"><div className="book-cover-slot">{p.bookCover?<img src={p.bookCover.src} alt={`${p.title} 그림책 표지`} style={{objectPosition:`${p.bookCover.x}% ${p.bookCover.y}%`}}/>:<span>그림책<br/>표지</span>}</div><p>{p.description}</p></div>:<p>{p.description}</p>}</div>
         </section>)}</div>
         <footer><b dangerouslySetInnerHTML={{__html:learningTitleHtml}}/><p>{weeklyLearning}</p></footer>
