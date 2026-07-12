@@ -92,6 +92,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
       .replace(/했음$/g, "했어요")
       .replace(/함$/g, "해보았어요")
       .replace(/그림$/g, "그려보았어요");
+    if (index > 0) sentence = sentence.replace(/^(아이들은|유아들은|친구들은|어린이들은)\s*/, "");
     if (index === 0 && !/^(아이들|아이가|친구들|어린이들)/.test(sentence)) sentence = `아이들은 ${sentence}`;
     return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
   });
