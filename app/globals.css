@@ -34,6 +34,8 @@ footer p{max-height:none;display:block;overflow:visible;white-space:normal;text-
 .photo-slot img{object-fit:contain;background:rgba(255,255,255,.18)}
 .photo-slot img{cursor:grab;touch-action:none}.photo-slot img:active{cursor:grabbing}
 .photo-control{cursor:grab}.photo-control:active{cursor:grabbing}.photo-drag-hint{display:block;color:#7a8993;font-size:9px;font-weight:500;margin:2px 0 5px;text-align:center}
+.play-copy>p,.book-copy-body>p{max-height:7.25em!important;-webkit-line-clamp:5!important}
+.draft-result .description-guide{font-size:0}.draft-result .description-guide::after{content:"기본 4줄 · 핵심 내용이 많으면 5줄";font-size:10px}
 footer p{font-size:16px!important;line-height:1.5}
 .app-shell{grid-template-columns:minmax(460px,32vw) minmax(794px,1fr)}
 .ai-button:disabled{opacity:.42;cursor:not-allowed}.play-editor textarea::placeholder{color:#9aa8b1;font-size:12px}
