@@ -21,6 +21,21 @@ const samples = [
   ["비 오는 날의 수채화", "비 오는 날 창밖의 모습을 관찰하고 번지는 물감으로 빗방울을 표현했어요.", "날씨 변화를 관찰하고 물감의 번짐을 실험하며 아름다움을 느꼈습니다."],
 ];
 
+const monthlyBackgrounds = [
+  { name: "포근한 겨울", css: "linear-gradient(155deg,#eaf5ff 0%,#ffffff 52%,#cfe8fa 100%)", color: "EAF5FF" },
+  { name: "새봄 기다림", css: "linear-gradient(155deg,#f5ecff 0%,#fff7fb 52%,#d9e8ff 100%)", color: "F5ECFF" },
+  { name: "봄 새싹", css: "linear-gradient(155deg,#e8f8de 0%,#fffbe8 52%,#cfeec8 100%)", color: "E8F8DE" },
+  { name: "봄꽃", css: "linear-gradient(155deg,#ffe8f0 0%,#fffbea 52%,#dff5e5 100%)", color: "FFE8F0" },
+  { name: "초록 숲", css: "linear-gradient(155deg,#dff4de 0%,#f4ffe9 52%,#bfe3d1 100%)", color: "DFF4DE" },
+  { name: "초여름", css: "linear-gradient(155deg,#dff7f2 0%,#fffde8 52%,#bce7e6 100%)", color: "DFF7F2" },
+  { name: "시원한 물빛", css: "linear-gradient(155deg,#bfeeff 0%,#e9f9ff 50%,#9ad7f4 100%)", color: "BFEEFF" },
+  { name: "여름 바다", css: "linear-gradient(155deg,#b7e8ff 0%,#e7fbff 48%,#82cbed 100%)", color: "B7E8FF" },
+  { name: "가을 시작", css: "linear-gradient(155deg,#fff0c9 0%,#fff8e8 52%,#e8d39d 100%)", color: "FFF0C9" },
+  { name: "단풍", css: "linear-gradient(155deg,#ffd7b5 0%,#fff1d7 52%,#e9a97d 100%)", color: "FFD7B5" },
+  { name: "늦가을", css: "linear-gradient(155deg,#ead9c6 0%,#fff7eb 52%,#cbb29a 100%)", color: "EAD9C6" },
+  { name: "겨울 눈꽃", css: "linear-gradient(155deg,#e7f2ff 0%,#ffffff 52%,#c8d9ef 100%)", color: "E7F2FF" },
+];
+
 const makePlay = (i: number): Play => ({
   id: Date.now() + i,
   title: samples[i]?.[0] || "새로운 여름 놀이",
@@ -59,6 +74,11 @@ export default function Home() {
   const [end, setEnd] = useState(initial[1]);
   const [plays, setPlays] = useState<Play[]>(() => Array.from({ length: 5 }, (_, i) => makePlay(i)));
   const [weeklyLearning, setWeeklyLearning] = useState("여름의 태양과 바다, 비와 다양한 여름 소리를 여러 재료와 방법으로 탐색하며 계절의 특징을 자연스럽게 알아보았습니다. 자신의 생각과 느낌을 창의적으로 표현하고, 친구들과 함께 여름 풍경과 소리를 만들며 서로의 표현을 감상하고 소통하는 경험을 했습니다.");
+  const [backgroundCss, setBackgroundCss] = useState(monthlyBackgrounds[6].css);
+  const [backgroundColor, setBackgroundColor] = useState(`#${monthlyBackgrounds[6].color}`);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundX, setBackgroundX] = useState(50);
+  const [backgroundY, setBackgroundY] = useState(50);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const updateRange = (y: number, m: number, w: number) => {
@@ -84,6 +104,18 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = () => setPlays(v => v.map((p, i) => i !== pi ? p : { ...p, photos: p.photos.map((ph, j) => j === si ? { src: String(reader.result), x: 50, y: 50 } : ph) }));
     reader.readAsDataURL(file);
+  };
+
+  const uploadBackground = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setBackgroundImage(String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
+  const applyMonthBackground = (m: number) => {
+    const bg = monthlyBackgrounds[m - 1];
+    setBackgroundCss(bg.css); setBackgroundColor(`#${bg.color}`); setBackgroundImage(null);
   };
 
   const generate = (idx: number) => {
@@ -118,7 +150,8 @@ export default function Home() {
     pptx.lang = "ko-KR";
     pptx.theme = { headFontFace: "CookieRun Black", bodyFontFace: "Freesentation", lang: "ko-KR" };
     const slide = pptx.addSlide();
-    slide.background = { color: "DDF5FF" };
+    slide.background = { color: backgroundColor.replace("#", "").toUpperCase() };
+    if (backgroundImage) slide.addImage({ data: backgroundImage, x: 0, y: 0, w: 8.267, h: 11.693 });
     slide.addShape(pptx.ShapeType.arc, { x: 6.65, y: .55, w: 2.2, h: 2.2, rotate: 18, fill: { color: "B8E8FA", transparency: 25 }, line: { color: "B8E8FA", transparency: 100 } });
     slide.addShape(pptx.ShapeType.arc, { x: -.6, y: 9.1, w: 2.2, h: 2.2, rotate: 205, fill: { color: "8FD2F0", transparency: 35 }, line: { color: "8FD2F0", transparency: 100 } });
     slide.addText(title, { x: .32, y: .22, w: 4.8, h: .35, fontFace: "CookieRun Black", fontSize: 22, bold: true, color: "172332", margin: 0, breakLine: false });
@@ -168,10 +201,15 @@ export default function Home() {
         <label>이번 주 놀이 주제<input value={theme} onChange={e => setTheme(e.target.value)} /></label>
         <div className="date-row">
           <label>연도<select value={year} onChange={e => { const v=+e.target.value; setYear(v); updateRange(v,month,week); }}>{[2025,2026,2027,2028].map(v=><option key={v}>{v}</option>)}</select></label>
-          <label>월<select value={month} onChange={e => { const v=+e.target.value; setMonth(v); updateRange(year,v,week); }}>{Array.from({length:12},(_,i)=>i+1).map(v=><option key={v}>{v}</option>)}</select></label>
+          <label>월<select value={month} onChange={e => { const v=+e.target.value; setMonth(v); updateRange(year,v,week); applyMonthBackground(v); }}>{Array.from({length:12},(_,i)=>i+1).map(v=><option key={v}>{v}</option>)}</select></label>
           <label>주차<select value={week} onChange={e => { const v=+e.target.value; setWeek(v); updateRange(year,month,v); }}>{[1,2,3,4,5].map(v=><option key={v}>{v}</option>)}</select></label>
         </div>
         <div className="date-row two"><label>시작일<input type="date" value={start} onChange={e=>setStart(e.target.value)} /></label><label>종료일<input type="date" value={end} onChange={e=>setEnd(e.target.value)} /></label></div>
+        <div className="background-editor">
+          <div className="section-title"><b>패널 배경</b><span>{month}월 · {monthlyBackgrounds[month-1].name}</span></div>
+          <div className="background-row"><label>배경색<input type="color" value={backgroundColor} onChange={e=>{setBackgroundColor(e.target.value);setBackgroundCss(e.target.value);setBackgroundImage(null)}} /></label><label className="upload background-upload"><span>＋ 배경 이미지 선택</span><input hidden type="file" accept="image/*" onChange={uploadBackground}/></label></div>
+          {backgroundImage&&<div className="background-focus"><label>좌우 초점<input type="range" min="0" max="100" value={backgroundX} onChange={e=>setBackgroundX(+e.target.value)} /></label><label>상하 초점<input type="range" min="0" max="100" value={backgroundY} onChange={e=>setBackgroundY(+e.target.value)} /></label><button className="text-btn" onClick={()=>applyMonthBackground(month)}>기본 배경으로 되돌리기</button></div>}
+        </div>
       </section>
       <div className="play-tabs">{plays.map((p,i)=><a key={p.id} href={`#edit-${p.id}`}>{i+1}</a>)}<span>{plays.length}/6개</span></div>
       {plays.map((p, pi) => <section className="play-editor" id={`edit-${p.id}`} key={p.id}>
@@ -194,7 +232,7 @@ export default function Home() {
     <section className="preview-area">
       <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button disabled={!!missing.length} onClick={()=>window.print()}>PDF 출력</button><button disabled={!!missing.length} onClick={exportPpt}>PPT 다운로드</button><button className="primary" disabled={!!missing.length} onClick={exportPng}>이미지 저장</button></div></div>
       {!!missing.length&&<div className="missing no-print"><b>출력 전 확인:</b> {missing.slice(0,4).join(", ")}{missing.length>4&&` 외 ${missing.length-4}개`}</div>}
-      <article className="panel" ref={panelRef}>
+      <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
         <header className="panel-header"><div><h2>{title}</h2><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i}`} key={p.id}>
           <div className="photo-grid">{p.photos.map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>

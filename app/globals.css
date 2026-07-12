@@ -13,3 +13,4 @@
 .play-copy>p{font-family:"Freesentation",sans-serif;font-weight:400}
 footer b{font-family:"CookieRun Black",sans-serif;font-weight:900}
 footer p{font-family:"Freesentation",sans-serif;font-weight:500}
+.background-editor{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:14px}.background-editor .section-title span{font-size:11px;color:#71808a}.background-row{display:grid;grid-template-columns:90px 1fr;gap:9px;align-items:end}.background-row input[type=color]{height:40px;padding:4px}.background-upload{display:flex;align-items:center;justify-content:center;height:40px;border:1px dashed #8abbd4;border-radius:8px;color:var(--blue);cursor:pointer;font-size:12px}.background-focus{display:grid;gap:7px;padding:10px;border-radius:8px;background:#f5fafc}.background-focus label{grid-template-columns:60px 1fr;align-items:center}.background-focus input[type=range]{padding:0}
