@@ -74,6 +74,12 @@ const pretty = (iso: string) => {
 
 const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
+  if (/분필/.test(context) && /(하늘정원|옥상정원|옥상|정원)/.test(context) && /바닥/.test(context)) {
+    const sea = /바다생물|바다 생물|물고기|거북이/.test(context);
+    const fruit = /여름과일|여름 과일|수박|참외/.test(context);
+    const subjects = sea && fruit ? "바다 생물과 여름 과일" : sea ? "물고기와 거북이 등 바다 생물" : fruit ? "수박과 참외 등 여름 과일" : "여름에 떠오르는 다양한 모습";
+    return `야외용 분필을 들고 하늘정원으로 나가 바닥에 여름 풍경을 그려보았어요. ${subjects}을 자유롭게 표현하고, 친구와 생각을 나누며 커다란 협동 작품도 완성했답니다. 서로의 그림이 이어져 하나의 여름 풍경이 되어가는 모습을 살펴보며 즐겁게 놀이했어요.`;
+  }
   if (/여름이\s*물러온다/.test(context) && /태양/.test(context)) {
     return "「여름이 물러온다」를 함께 읽으며 책 표지에 담긴 여름 태양을 살펴보았어요. 습자지를 뭉쳐 태양을 꾸미고, 파란색으로 칠한 구름에는 숨을 불어 우리만의 장면을 완성했답니다. 완성한 작품은 교실 천장에 매달아 감상하며 이야기의 장면을 다시 떠올려보았어요.";
   }
@@ -92,6 +98,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
       .replace(/메미/g, "매미")
       .replace(/소리등/g, "소리 등")
       .replace(/여름풍경을 바닥에/g, "바닥에 여름 풍경을")
+      .replace(/(을|를|에)\s*그림\s*([,，])/g, "$1 그리고$2")
       .replace(/거북이\s*물고기등\s*다양하게\s*그림그리고\s*친구들과\s*함께\s*합동그림도\s*그려봄$/g, "거북이와 물고기 등 다양한 모습을 그리고, 친구들과 함께 합동 그림도 완성해보았어요")
       .replace(/거북이\s*물고기\s*등\s*다양하게\s*그림$/g, "거북이와 물고기 등 다양한 모습을 그려 넣었답니다")
       .replace(/만들어봄\s*([,，])/g, "만들어보고$1")
