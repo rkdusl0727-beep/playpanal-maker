@@ -62,11 +62,56 @@ const pretty = (iso: string) => {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 };
 
+const htmlToPlain = (html: string) => {
+  if (typeof document === "undefined") return html.replace(/<[^>]*>/g, "");
+  const box = document.createElement("div"); box.innerHTML = html;
+  return box.textContent || "";
+};
+
+const htmlToPptRuns = (html: string, fallback: string) => {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const runs: Array<{ text: string; options: { color: string } }> = [];
+  const walk = (node: Node, color: string) => {
+    if (node.nodeType === Node.TEXT_NODE && node.textContent) runs.push({ text: node.textContent, options: { color: color.replace("#", "").toUpperCase() } });
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const nextColor = el.style.color || color;
+      el.childNodes.forEach(child => walk(child, nextColor));
+      if ((el.tagName === "DIV" || el.tagName === "P") && el.nextSibling) runs.push({ text: "\n", options: { color: nextColor.replace("#", "").toUpperCase() } });
+    }
+  };
+  doc.body.firstElementChild?.childNodes.forEach(node => walk(node, fallback));
+  return runs;
+};
+
+function RichColorEditor({ html, onChange, label }: { html: string; onChange: (html: string, text: string) => void; label: string }) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const rangeRef = useRef<Range | null>(null);
+  const [color, setColor] = useState("#172332");
+  const rememberSelection = () => {
+    const selection = window.getSelection();
+    if (selection?.rangeCount && editorRef.current?.contains(selection.anchorNode)) rangeRef.current = selection.getRangeAt(0).cloneRange();
+  };
+  const emit = () => { const el = editorRef.current; if (el) onChange(el.innerHTML, el.textContent || ""); };
+  const applyColor = () => {
+    const selection = window.getSelection();
+    if (rangeRef.current && selection) { selection.removeAllRanges(); selection.addRange(rangeRef.current); }
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand("foreColor", false, color);
+    editorRef.current?.focus(); rememberSelection(); emit();
+  };
+  return <div className="rich-editor-wrap">
+    <div className="rich-label"><b>{label}</b><span>글자를 드래그한 뒤 색상을 적용하세요</span></div>
+    <div ref={editorRef} className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: html }} onInput={emit} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onPaste={e=>{e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain"));emit()}} />
+    <div className="rich-color-tools"><input aria-label={`${label} 선택 색상`} type="color" value={color} onChange={e=>setColor(e.target.value)} /><button type="button" onMouseDown={e=>e.preventDefault()} onClick={applyColor}>선택 글자에 색상 적용</button></div>
+  </div>;
+}
+
 export default function Home() {
   const now = new Date();
   const initial = weekRange(now.getFullYear(), 7, 2);
   const [title, setTitle] = useState("어진반 놀이로 배우다");
-  const [titleColor, setTitleColor] = useState("#172332");
+  const [titleHtml, setTitleHtml] = useState("어진반 <span style=\"color:#0877bd\">놀이로 배우다</span>");
   const [theme, setTheme] = useState("뜨거운 여름");
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(7);
@@ -75,6 +120,7 @@ export default function Home() {
   const [end, setEnd] = useState(initial[1]);
   const [plays, setPlays] = useState<Play[]>(() => Array.from({ length: 5 }, (_, i) => makePlay(i)));
   const [weeklyLearning, setWeeklyLearning] = useState("여름의 태양과 바다, 비와 다양한 여름 소리를 여러 재료와 방법으로 탐색하며 계절의 특징을 자연스럽게 알아보았습니다. 자신의 생각과 느낌을 창의적으로 표현하고, 친구들과 함께 여름 풍경과 소리를 만들며 서로의 표현을 감상하고 소통하는 경험을 했습니다.");
+  const [weeklyLearningHtml, setWeeklyLearningHtml] = useState("여름의 태양과 바다, 비와 다양한 여름 소리를 여러 재료와 방법으로 탐색하며 계절의 특징을 자연스럽게 알아보았습니다. 자신의 생각과 느낌을 창의적으로 표현하고, 친구들과 함께 여름 풍경과 소리를 만들며 서로의 표현을 감상하고 소통하는 경험을 했습니다.");
   const [backgroundCss, setBackgroundCss] = useState(monthlyBackgrounds[6].css);
   const [backgroundColor, setBackgroundColor] = useState(`#${monthlyBackgrounds[6].color}`);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -157,7 +203,7 @@ export default function Home() {
     slide.addShape(pptx.ShapeType.arc, { x: 6.65, y: .55, w: 2.2, h: 2.2, rotate: 18, fill: { color: "B8E8FA", transparency: 25 }, line: { color: "B8E8FA", transparency: 100 } });
     slide.addShape(pptx.ShapeType.arc, { x: -.6, y: 9.1, w: 2.2, h: 2.2, rotate: 205, fill: { color: "8FD2F0", transparency: 35 }, line: { color: "8FD2F0", transparency: 100 } });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: .12, w: 7.6, h: 0, line: { color: "172332", width: 2.2 } });
-    slide.addText(title, { x: .32, y: .2, w: 7.6, h: .42, fontFace: "CookieRun Black", fontSize: 26, bold: true, align: "center", color: titleColor.replace("#", "").toUpperCase(), margin: 0, breakLine: false });
+    slide.addText(htmlToPptRuns(titleHtml, "#172332"), { x: .32, y: .2, w: 7.6, h: .42, fontFace: "CookieRun Black", fontSize: 26, bold: true, align: "center", margin: 0, breakLine: false });
     slide.addText(theme, { x: .32, y: .67, w: 7.6, h: .31, fontFace: "Freesentation", fontSize: 17, bold: true, align: "center", color: "172332", margin: 0 });
     slide.addText(`놀이기간: ${month}월 ${week}주(${pretty(start)} ~ ${pretty(end)})`, { x: 4.25, y: .98, w: 3.67, h: .2, fontFace: "Freesentation", fontSize: 8.5, bold: true, align: "right", color: "172332", margin: 0 });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 1.2, w: 7.6, h: 0, line: { color: "172332", width: .8 } });
@@ -193,7 +239,7 @@ export default function Home() {
     });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
     slide.addText("놀이를 통한 배움", { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, color: "075F9B", margin: 0 });
-    slide.addText(weeklyLearning, { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 8.5, bold: true, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
+    slide.addText(htmlToPptRuns(weeklyLearningHtml, "#172332"), { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 8.5, bold: true, margin: 0, valign: "top", breakLine: false, fit: "shrink" });
     await pptx.writeFile({ fileName: `${theme}-놀이패널.pptx` });
   };
 
@@ -201,7 +247,7 @@ export default function Home() {
     <aside className="editor no-print">
       <div className="editor-head"><p className="eyebrow">PLAY PANEL MAKER</p><h1>주간 놀이 패널</h1><p>내용을 입력하면 오른쪽 A4 패널에 바로 반영됩니다.</p></div>
       <section className="settings">
-        <div className="title-editor-row"><label>패널 제목<input value={title} onChange={e => setTitle(e.target.value)} /></label><label>글자색<input type="color" value={titleColor} onChange={e=>setTitleColor(e.target.value)} /></label></div>
+        <RichColorEditor label="패널 제목" html={titleHtml} onChange={(html,text)=>{setTitleHtml(html);setTitle(text)}} />
         <label>이번 주 놀이 주제<input value={theme} onChange={e => setTheme(e.target.value)} /></label>
         <div className="date-row">
           <label>연도<select value={year} onChange={e => { const v=+e.target.value; setYear(v); updateRange(v,month,week); }}>{[2025,2026,2027,2028].map(v=><option key={v}>{v}</option>)}</select></label>
@@ -229,7 +275,7 @@ export default function Home() {
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
-      <section className="play-editor weekly-editor"><div className="section-title"><b>한 주 전체 놀이를 통한 배움</b></div><label>패널 최하단에 한 번만 표시됩니다<textarea value={weeklyLearning} onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
+      <section className="play-editor weekly-editor"><RichColorEditor label="한 주 전체 놀이를 통한 배움" html={weeklyLearningHtml} onChange={(html,text)=>{setWeeklyLearningHtml(html);setWeeklyLearning(text)}} /></section>
       {plays.length<6&&<button className="add-play" onClick={()=>setPlays(v=>[...v,makePlay(v.length)])}>＋ 놀이 하나 더 추가</button>}
     </aside>
 
@@ -237,12 +283,12 @@ export default function Home() {
       <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button disabled={!!missing.length} onClick={()=>window.print()}>PDF 출력</button><button disabled={!!missing.length} onClick={exportPpt}>PPT 다운로드</button><button className="primary" disabled={!!missing.length} onClick={exportPng}>이미지 저장</button></div></div>
       {!!missing.length&&<div className="missing no-print"><b>출력 전 확인:</b> {missing.slice(0,4).join(", ")}{missing.length>4&&` 외 ${missing.length-4}개`}</div>}
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
-        <header className="panel-header"><div><h2 style={{color:titleColor}}>{title}</h2><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
+        <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i}`} key={p.id}>
           <div className="photo-grid">{p.photos.map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
           <div className="play-copy"><h4>{p.title}</h4><p>{p.description}</p></div>
         </section>)}</div>
-        <footer><b>놀이를 통한 배움</b><p>{weeklyLearning}</p></footer>
+        <footer><b>놀이를 통한 배움</b><p dangerouslySetInnerHTML={{__html:weeklyLearningHtml}}/></footer>
       </article>
     </section>
   </main>;
