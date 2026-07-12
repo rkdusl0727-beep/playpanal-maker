@@ -469,6 +469,14 @@ export default function Home() {
     })));
     e.target.value = "";
   };
+  const movePhoto = (pi: number, from: number, to: number) => {
+    setPlays(current => current.map((p, i) => {
+      if (i !== pi || to < 0 || to >= p.photoCount) return p;
+      const photos = [...p.photos];
+      [photos[from], photos[to]] = [photos[to], photos[from]];
+      return { ...p, photos };
+    }));
+  };
 
   const uploadBackground = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -553,15 +561,18 @@ export default function Home() {
       const columns = p.photoCount === 8 ? 4 : 3;
       const cellW = (photoW - gap * (columns - 1)) / columns;
       const cellH = (photoH - gap) / 2;
-      p.photos.slice(0, p.photoCount).forEach((ph, j) => {
+      for (const [j, ph] of p.photos.slice(0, p.photoCount).entries()) {
         const x = photoX + (j % columns) * (cellW + gap);
         const y = photoY + Math.floor(j / columns) * (cellH + gap);
-        if (ph) slide.addImage({ data: ph.src, x, y, w: cellW, h: cellH });
+        if (ph) {
+          const fitted = await containedImageRect(ph.src, x, y, cellW, cellH);
+          slide.addImage({ data: ph.src, ...fitted });
+        }
         else {
           slide.addShape(pptx.ShapeType.rect, { x, y, w: cellW, h: cellH, fill: { color: "FFFFFF", transparency: 38 }, line: { color: "FFFFFF", transparency: 100 } });
           slide.addText(String(j + 1), { x, y: y + cellH / 2 - .07, w: cellW, h: .14, fontSize: 7, bold: true, align: "center", color: "65A6C3", margin: 0 });
         }
-      });
+      }
       const textX = wide ? box.x + 3.6 : box.x;
       const textY = wide ? box.y : box.y + 1.24;
       const textW = wide ? 4.0 : box.w;
@@ -609,7 +620,7 @@ export default function Home() {
         <div className="date-row two"><label>시작일<input type="date" value={start} onChange={e=>setStart(e.target.value)} /></label><label>종료일<input type="date" value={end} onChange={e=>setEnd(e.target.value)} /></label></div>
         <div className="background-editor">
           <div className="section-title"><b>패널 배경</b><span>{month}월 · {monthlyBackgrounds[month-1].name}</span></div>
-          <div className="background-row"><label>배경색<input type="color" value={backgroundColor} onChange={e=>{setBackgroundColor(e.target.value);setBackgroundCss(e.target.value);setBackgroundImage(null)}} /></label><label className="upload background-upload"><span>＋ 배경 이미지 선택</span><input hidden type="file" accept="image/*" onChange={uploadBackground}/></label></div>
+          <label className="upload background-upload"><span>＋ 배경 이미지 선택</span><input hidden type="file" accept="image/*" onChange={uploadBackground}/></label>
           {backgroundImage&&<div className="background-focus"><label>좌우 초점<input type="range" min="0" max="100" value={backgroundX} onChange={e=>setBackgroundX(+e.target.value)} /></label><label>상하 초점<input type="range" min="0" max="100" value={backgroundY} onChange={e=>setBackgroundY(+e.target.value)} /></label><button className="text-btn" onClick={()=>applyMonthBackground(month)}>기본 배경으로 되돌리기</button></div>}
         </div>
       </section>
@@ -623,6 +634,7 @@ export default function Home() {
         <div className="photo-count-row"><p className="mini-label">Shift로 여러 장을 선택하면 선택한 칸부터 순서대로 채워집니다</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden multiple type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>
+          <div className="photo-order"><button type="button" onClick={()=>movePhoto(pi,si,si-1)} disabled={si===0}>↑ 위로</button><button type="button" onClick={()=>movePhoto(pi,si,si+1)} disabled={si===p.photoCount-1}>↓ 아래로</button></div>
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
