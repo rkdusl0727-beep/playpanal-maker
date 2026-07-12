@@ -303,13 +303,7 @@ const makeWeeklyLearning = (allPlays: Play[], theme: string) => {
   const seasonal = /여름|태양|바다|비|파도/.test(`${theme} ${source}`)
     ? "놀이 속에서 계절의 특징을 자연스럽게 알아보았어요"
     : `${theme}에 담긴 특징을 자연스럽게 발견해보았어요`;
-  const learningLines = [
-    `이번 주에 유아들은 ${subject}와 관련된 모습을 여러 재료와 방법으로 탐색하며 ${seasonal}.`,
-    "다양한 미술 재료와 도구를 활용해 떠오른 생각과 느낌을 자신만의 방법으로 창의적으로 표현하고,",
-    "친구들과 함께 풍경과 소리를 만들며 서로의 표현을 감상하는 과정에서",
-    "즐겁게 소통하고 협력하며 놀이를 풍성하게 이어가는 경험을 해보았습니다.",
-  ];
-  return learningLines.join(" ");
+  return `이번 주에 유아들은 ${subject}와 관련된 모습을 여러 재료와 방법으로 탐색하며 ${seasonal}. 다양한 미술 재료와 도구를 활용해 떠오른 생각과 느낌을 자신만의 방법으로 창의적으로 표현하고, 친구들과 함께 풍경과 소리를 만들며 서로의 표현을 감상했어요. 놀이를 함께 완성해가는 과정에서 친구의 생각을 존중하고 즐겁게 소통하며, 필요한 도구를 안전하게 사용하고 관심이 이어지는 방향으로 놀이를 스스로 확장해보는 경험을 했답니다.`;
 };
 
 const saveBlobWithPicker = async (blob: Blob, suggestedName: string) => {
