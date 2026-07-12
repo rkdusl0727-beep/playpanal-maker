@@ -118,7 +118,6 @@ const finalizeDescription = (value: string) => {
 };
 
 const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = false) => {
-  const maxChars = isBookPlay ? (isWide ? 126 : 116) : (isWide ? 166 : 148);
   const minChars = isBookPlay ? 100 : (isWide ? 130 : 118);
   let text = finalizeDescription(value)
     .replace(/함께 이야기를 나누어보았어요/g, "이야기를 나누었어요")
@@ -130,33 +129,14 @@ const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = fa
   if (text.length < minChars) {
     text = finalizeDescription(`${text} 놀이를 이어가며 서로의 표현을 살펴보고 느낀 점을 자연스럽게 나누어보았어요.`);
   }
-  if (text.length <= maxChars) return text;
-
-  const sentences = text.match(/[^.!?]+[.!?]/g)?.map(sentence => sentence.trim()) ?? [text];
-  const kept: string[] = [];
-  for (const sentence of sentences) {
-    const candidate = [...kept, sentence].join(" ");
-    if (candidate.length <= maxChars || kept.length < 2) kept.push(sentence);
-    else break;
-  }
-  text = kept.join(" ");
-  if (text.length <= maxChars) return finalizeDescription(text);
-
-  // 매우 긴 한 문장은 핵심 행동이 담긴 앞 절들을 살리고 자연스러운 종결어미를 붙인다.
-  const clauses = text.replace(/[.!?]+$/, "").split(/,\s*/).filter(Boolean);
-  const selected: string[] = [];
-  for (const clause of clauses) {
-    if ([...selected, clause].join(", ").length > maxChars - 12) break;
-    selected.push(clause);
-  }
-  const compact = (selected.length ? selected.join(", ") : text.slice(0, maxChars - 12).replace(/\s+\S*$/, ""))
-    .replace(/(하고|하며|보며|보고|나누고|살펴보고)$/, "했어요")
-    .replace(/(해|하여)$/, "해보았어요");
-  return finalizeDescription(/[.!?]$/.test(compact) ? compact : `${compact} 활동을 즐겨보았어요.`);
+  return text;
 };
 
 const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
+  if (/(비오는날|비 오는 날)/.test(context) && /(하늘정원|옥상정원)/.test(context) && /물웅덩이/.test(context) && /우산/.test(context)) {
+    return "비 오는 날 하늘정원에 올라가 빗소리를 듣고, 떨어지는 빗방울과 물웅덩이를 관찰했어요. 교실로 돌아와 크레파스로 빗방울과 물웅덩이를, 물감으로 배경을 칠해 비 오는 풍경을 표현했답니다. 물감 위로 나타난 빗방울을 보며 즐거워하고, 우산 쓴 자신의 모습을 붙여 그림을 완성했어요.";
+  }
   if (/분필/.test(context) && /(하늘정원|옥상정원|옥상|정원)/.test(context) && /바닥/.test(context)) {
     const sea = /바다생물|바다 생물|물고기|거북이/.test(context);
     const fruit = /여름과일|여름 과일|수박|참외/.test(context);
