@@ -119,7 +119,7 @@ const finalizeDescription = (value: string) => {
 
 const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = false) => {
   const maxChars = isBookPlay ? (isWide ? 126 : 116) : (isWide ? 166 : 148);
-  const minChars = isBookPlay ? 82 : (isWide ? 108 : 96);
+  const minChars = isBookPlay ? 100 : (isWide ? 130 : 118);
   let text = finalizeDescription(value)
     .replace(/함께 이야기를 나누어보았어요/g, "이야기를 나누었어요")
     .replace(/서로의 생각을 나누어보았어요/g, "생각을 나누었어요")
@@ -420,7 +420,7 @@ export default function Home() {
       if (!p.title.trim()) items.push(`${i + 1}번 놀이 제목`);
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
       else {
-        const minimumLength = p.isBookPlay ? 82 : (i === 4 ? 108 : 96);
+        const minimumLength = p.isBookPlay ? 100 : (i === 4 ? 130 : 118);
         if (p.description.trim().length < minimumLength || (p.description.match(/[.!?]/g)?.length ?? 0) < 2) items.push(`${i + 1}번 놀이 설명 4줄 이상`);
       }
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
