@@ -197,7 +197,7 @@ const makeWeeklyLearning = (allPlays: Play[], theme: string) => {
   const seasonal = /여름|태양|바다|비|파도/.test(`${theme} ${source}`)
     ? "계절의 특징을 자연스럽게 알아보았어요"
     : `${theme}에 담긴 특징을 자연스럽게 발견해보았어요`;
-  const exploration = `${subject} 등 이번 주 놀이의 다양한 요소를 여러 가지 재료와 방법으로 탐색하며 ${seasonal}.`;
+  const exploration = `이번 주에 유아들은 ${subject} 등 다양한 놀이 요소를 여러 가지 재료와 방법으로 탐색하며 ${seasonal}.`;
   const expression = /색|선|그림|물감|분필|미술|만들|꾸미|표현|몸짓|사진/.test(source)
     ? "다양한 재료를 활용하며 자신의 생각과 느낌을 창의적으로 표현했답니다."
     : "놀이 과정에서 발견한 생각과 느낌을 자신만의 방법으로 표현해보았답니다.";
