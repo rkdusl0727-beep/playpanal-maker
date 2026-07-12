@@ -159,6 +159,9 @@ const naturalizeNote = (note: string, playTitle: string) => {
   if (/우드락/.test(context) && /(판화|찍어|찍는)/.test(context) && /소리/.test(context)) {
     return "여름 소리 그림책을 함께 읽으며 어떤 소리가 떠오르는지 이야기를 나누어보았어요. 매미와 파도, 빗방울 등 여름의 다양한 소리를 모아 우드락 위에 연필로 선과 모양을 새긴 후 물감을 발라 판화로 표현해 볼 수 있었어요.";
   }
+  if (/여름\s*소리|소리/.test(context) && /(말로\s*써|써봄|써\s*봄|낱말|어휘|글자|말로\s*나타)/.test(context)) {
+    return "여름 소리를 귀 기울여 듣고 어떤 소리인지 눈을 감고 맞혀보며 소리의 특징을 자세히 살펴보았어요. 다양한 여름 소리에 대해 이야기를 나눈 뒤, 소리를 나타내는 말을 떠올려 말해보고 알맞은 낱말로 써보았답니다. 친구가 고른 낱말을 함께 읽어보며 소리와 말이 연결되는 즐거움을 느끼고, 자신의 생각을 글자로 표현하는 문해 경험을 쌓아보았어요.";
+  }
   if (/(블록|놀잇감)/.test(context) && /(여름소리|여름 소리)/.test(context)) {
     const connectedSounds = /(?:만든|만들어본|우리(?:가)?\s*만든)\s*소리(?:를|들을)?\s*연결|소리(?:를|들을)?\s*연결/.test(context);
     const connectedPhrase = connectedSounds ? " 우리가 만든 소리를 차례로 연결해보며" : "";
@@ -269,6 +272,7 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (/모자이크/.test(source) && /모빌/.test(source) && /물방울/.test(source)) return "알록달록 모자이크 물방울 모빌";
   if (/모자이크/.test(source) && /모빌/.test(source)) return "알록달록 색종이 모자이크 모빌";
   if (/우드락|판화|찍어내/.test(source) && /소리/.test(source)) return "여름 소리를 찍어낸 우드락 판화";
+  if (/소리/.test(source) && /(말로\s*써|써봄|낱말|어휘|글자)/.test(source)) return "여름 소리를 낱말로 담아요";
   if (/블록|놀잇감/.test(source) && /여름소리|여름 소리/.test(source)) return "블록과 놀잇감으로 만든 여름 소리";
   if (/빨대|불어/.test(source) && /물감/.test(source)) return "후후 불어 피어난 물감 그림";
   if (/비|빗방울/.test(source) && /번지|수채/.test(source)) return "번지는 물감으로 그린 비 오는 날";
