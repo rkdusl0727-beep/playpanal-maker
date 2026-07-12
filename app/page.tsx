@@ -72,6 +72,19 @@ const pretty = (iso: string) => {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 };
 
+const themeEmoji = (value: string) => {
+  if (/비|빗|장마|우산/.test(value)) return "☔";
+  if (/바다|파도|물놀이|물고기/.test(value)) return "🌊";
+  if (/여름|태양|햇빛|햇살/.test(value)) return "☀️";
+  if (/봄|꽃|새싹/.test(value)) return "🌸";
+  if (/가을|단풍|열매/.test(value)) return "🍂";
+  if (/겨울|눈|얼음/.test(value)) return "❄️";
+  if (/소리|음악|노래|악기/.test(value)) return "🎵";
+  if (/그림책|동화|책/.test(value)) return "📚";
+  if (/자연|숲|나무|정원/.test(value)) return "🌿";
+  return "✨";
+};
+
 // 메모체는 편집용 입력에서만 허용하고, 생성 결과와 신문에는 완성형 문장만 남긴다.
 const finalizeDescription = (value: string) => {
   let text = value
@@ -503,7 +516,7 @@ export default function Home() {
     slide.addShape(pptx.ShapeType.arc, { x: -.6, y: 9.1, w: 2.2, h: 2.2, rotate: 205, fill: { color: "8FD2F0", transparency: 35 }, line: { color: "8FD2F0", transparency: 100 } });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: .12, w: 7.6, h: 0, line: { color: "172332", width: 2.2 } });
     slide.addText(htmlToPptRuns(titleHtml, "#172332"), { x: .32, y: .2, w: 7.6, h: .42, fontFace: "CookieRun Black", fontSize: 26, bold: true, align: "center", margin: 0, breakLine: false });
-    slide.addText(theme, { x: .32, y: .67, w: 7.6, h: .31, fontFace: "Freesentation", fontSize: 17, bold: true, align: "center", color: "172332", margin: 0 });
+    slide.addText(`${themeEmoji(theme)} ${theme}`, { x: .32, y: .65, w: 7.6, h: .35, fontFace: "Freesentation", fontSize: 19, bold: true, align: "center", color: "172332", margin: 0 });
     slide.addText(`놀이기간: ${month}월 ${week}주(${pretty(start)} ~ ${pretty(end)})`, { x: 3.75, y: .95, w: 4.17, h: .27, fontFace: "Freesentation", fontSize: 11, bold: true, align: "right", color: "172332", margin: 0 });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 1.2, w: 7.6, h: 0, line: { color: "172332", width: .8 } });
 
@@ -599,7 +612,7 @@ export default function Home() {
     <section className="preview-area">
       <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button onClick={()=>window.print()}>PDF 저장</button><button onClick={exportPpt}>PPT 저장</button><button className="primary" onClick={exportPng}>이미지 저장</button></div></div>
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
-        <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
+        <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3><span className="theme-icon" aria-hidden="true">{themeEmoji(theme)}</span>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i} ${p.isBookPlay?"has-book-card":""}`} key={p.id}>
           <div className={`photo-grid photos-${p.photoCount}`}>{p.photos.slice(0,p.photoCount).map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.approved?p.publishedTitle:p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
           <div className={`play-copy ${p.isBookPlay?"book-copy":""}`}><h4>{p.publishedTitle}</h4>{p.isBookPlay?<div className="book-copy-body"><div className={`book-cover-slot ${p.bookCover?"has-cover":""}`}>{p.bookCover?<img src={p.bookCover.src} alt={`${p.publishedTitle || "놀이"} 그림책 표지`} style={{objectPosition:`${p.bookCover.x}% ${p.bookCover.y}%`}}/>:<span>그림책<br/>표지</span>}</div><p>{p.publishedDescription}</p></div>:<p>{p.publishedDescription}</p>}</div>
