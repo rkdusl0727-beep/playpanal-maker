@@ -235,7 +235,8 @@ export default function Home() {
 
   const generate = (idx: number) => {
     const p = plays[idx];
-    const source = p.note.trim() || `아이들이 ${p.title}에 관심을 보이며 다양한 재료와 방법으로 놀이함`;
+    const source = p.note.trim();
+    if (!source) return;
     const newspaperTitle = makeNewspaperTitle(source, p.title, p.isBookPlay);
     updatePlay(idx, {
       title: newspaperTitle,
@@ -348,12 +349,12 @@ export default function Home() {
       </section>
       <div className="play-tabs">{plays.map((p,i)=><a key={p.id} href={`#edit-${p.id}`}>{i+1}</a>)}<span>{plays.length}/6개</span></div>
       {plays.map((p, pi) => <section className="play-editor" id={`edit-${p.id}`} key={p.id}>
-        <div className="section-title"><b>{pi+1}. {p.title || "매주 바뀌는 놀이 제목"}</b>{plays.length>5&&<button className="text-btn" onClick={()=>setPlays(v=>v.filter((_,i)=>i!==pi))}>삭제</button>}</div>
-        <label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})} placeholder="직접 입력하거나 아래 AI 버튼으로 만들어 보세요"/></label>
+        <div className="section-title"><b>{pi+1}. {p.title || "놀이 제목 입력 전"}</b>{plays.length>5&&<button className="text-btn" onClick={()=>setPlays(v=>v.filter((_,i)=>i!==pi))}>삭제</button>}</div>
+        <label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})} placeholder="제목을 입력하면 위 제목도 함께 바뀝니다"/></label>
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload"><span>{p.bookCover?"표지 이미지 변경":"＋ 표지 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>놀이 요약 메모 <span className="description-guide">핵심 행동과 아이들의 반응만 짧게 적어도 됩니다</span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value})} placeholder="예: 아이들이 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        <button className="ai-button" onClick={()=>generate(pi)}>✦ AI 놀이신문 제목·설명 만들기</button>
+        <button className="ai-button" disabled={!p.note.trim()} onClick={()=>generate(pi)}>{p.note.trim()?"✦ AI 놀이신문 제목·설명 만들기":"요약 메모를 먼저 입력해 주세요"}</button>
         <label>놀이에 대한 설명 <span className="description-guide">3줄 이상 · 최대 6줄 권장 ({p.description.trim().length}자)</span><textarea rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label>
         <button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>updatePlay(pi,{approved:true,publishedTitle:p.title,publishedDescription:p.description})}>{p.approved?"✓ 신문 반영 완료":"제목·설명 확인 후 신문에 반영"}</button>
         <div className="photo-count-row"><p className="mini-label">사진 데이터는 항상 8칸 · 사용하지 않는 칸은 null 저장</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
