@@ -165,6 +165,9 @@ const naturalizeNote = (note: string, playTitle: string) => {
   if (/(구름|비가\s*되는|쉐이빙폼|색소|수조)/.test(context) && /관찰|실험|떨어/.test(context)) {
     return "구름에서 비가 되는 과정을 알아보기 위해 수조에 쉐이빙폼을 뿌리고 구름을 만들어보았어요. 그 위에 색소를 떨어뜨리자 색소가 점점 아래로 내려가는 모습을 자세히 관찰하며 비가 내리는 모습을 탐색했답니다. 눈앞에서 나타나는 변화를 살펴보고 구름과 비의 관계를 자신의 말로 이야기해보며 자연 현상을 알아가는 즐거움을 느껴보았어요.";
   }
+  if (/(스프레이건|물총|물놀이)/.test(context) && /(페트병|하늘정원|옥상정원|연결)/.test(context)) {
+    return "스프레이건을 페트병에 연결해 물총을 만들어보고 하늘정원으로 올라가 물총놀이를 시작했어요. 직접 만든 물총으로 물을 뿌리며 놀이 방법을 바꾸어 시도하고, 친구와 물의 방향과 거리를 비교하며 즐겁게 놀이를 이어갔답니다. 함께 만든 물놀이 공간에서 서로의 생각을 나누고 안전하게 움직이며 놀이를 마무리해보았어요.";
+  }
   if (/(블록|놀잇감)/.test(context) && /(여름소리|여름 소리)/.test(context)) {
     const connectedSounds = /(?:만든|만들어본|우리(?:가)?\s*만든)\s*소리(?:를|들을)?\s*연결|소리(?:를|들을)?\s*연결/.test(context);
     const connectedPhrase = connectedSounds ? " 우리가 만든 소리를 차례로 연결해보며" : "";
@@ -251,16 +254,8 @@ const naturalizeNote = (note: string, playTitle: string) => {
   });
   let story = finalizeDescription(varied.join(" "));
   const hasPeerPlay = /친구|짝|함께|협동/.test(context);
-  const additions = [
-    /그림책|책을 읽|동화/.test(context) ? "그림책에서 기억에 남은 장면을 자신의 방법으로 표현해 볼 수 있었어요." : hasPeerPlay ? "서로의 생각과 느낀 점을 자연스럽게 나누어보았어요." : "활동에서 사용한 재료와 방법으로 자신의 생각을 표현해 볼 수 있었어요.",
-    /물감|분필|색종이|우드락|점토|크레파스|연필|종이|블록|악기|놀잇감/.test(context) ? "여러 재료와 도구의 특징을 경험해 볼 수 있는 시간이었답니다." : "여러 가지 방법을 직접 시도해 볼 수 있었어요.",
-    hasPeerPlay ? "친구와 함께 놀이하며 느낀 점을 자연스럽게 나누어보았어요." : "놀이의 과정과 결과를 살펴볼 수 있는 시간이었답니다.",
-  ];
-  let additionIndex = 0;
-  while ((story.length < 105 || (story.match(/[.!?]/g)?.length ?? 0) < 2) && additionIndex < additions.length) {
-    if (!story.includes(additions[additionIndex])) story = `${story} ${additions[additionIndex]}`;
-    additionIndex += 1;
-  }
+  const closing = hasPeerPlay ? "서로의 표현을 살펴보며 느낀 점을 자연스럽게 나누어보았어요." : "놀이를 이어가며 새롭게 발견한 점을 이야기해보았어요.";
+  if (story.length < 105 || (story.match(/[.!?]/g)?.length ?? 0) < 2) story = `${story} ${closing}`;
   if (/확장활동/.test(context) && !/확장되고 있답니다/.test(story)) {
     story = story.replace(/(?:해보았어요|했어요|했답니다|느꼈어요|나누었어요)\.$/, "하며 앞선 놀이의 관심이 새로운 놀이로 자연스럽게 확장되고 있답니다.");
   }
@@ -286,6 +281,7 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (/우드락|판화|찍어내/.test(source) && /소리/.test(source)) return "여름 소리를 찍어낸 우드락 판화";
   if (/소리/.test(source) && /(말로\s*써|써봄|낱말|어휘|글자)/.test(source)) return "여름 소리를 낱말로 담아요";
   if (/(구름|비가\s*되는|쉐이빙폼|색소|수조)/.test(source)) return "쉐이빙폼 구름에서 내리는 색소 비";
+  if (/(스프레이건|물총|물놀이)/.test(source) && /페트병/.test(source)) return "페트병으로 만든 우리 물총놀이";
   if (/실험활동|실험|가설|변화|녹아|섞어/.test(source)) return "재료의 변화를 발견하는 실험놀이";
   if (/자연탐구|식물|꽃|나뭇잎|곤충|생태|씨앗/.test(source)) return "자연에서 발견한 작은 변화";
   if (/신체놀이|신체활동|달리|뛰|점프|균형|기어|움직임/.test(source)) return "몸의 움직임으로 펼친 신체놀이";
