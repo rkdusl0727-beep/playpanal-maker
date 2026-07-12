@@ -79,6 +79,19 @@ const naturalizeNote = (note: string, playTitle: string) => {
   return `${observation} 아이들은 ${playTitle}에 필요한 재료와 방법을 스스로 선택하고, 궁금한 점을 직접 시도하며 놀이를 이어갔습니다. 놀이 과정에서 서로의 생각을 귀 기울여 듣고 새로운 방법을 함께 찾아보았으며, 자신이 발견한 점과 느낌을 말과 행동으로 자연스럽게 표현했습니다. 친구들과 놀이를 함께 만들어 가며 즐거움과 성취감을 나누었습니다.`;
 };
 
+const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
+  const source = `${note} ${currentTitle}`.replace(/\s+/g, " ");
+  if (isBookPlay) return "책장을 넘기자, 이야기가 놀이로 활짝!";
+  if (/비|빗방울|수채|번짐/.test(source)) return "톡톡 빗방울, 알록달록 작품으로!";
+  if (/소리|악기|노래|리듬/.test(source)) return "귀를 쫑긋! 우리만의 소리를 찾아서";
+  if (/물놀이|바다|파도|물고기|여름/.test(source)) return "찰랑찰랑, 시원한 여름이 놀이로!";
+  if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연을 만났더니 놀이가 피어났어요!";
+  if (/블록|쌓|구성|만들/.test(source)) return "상상이 차곡차곡, 멋진 세상을 만들어요!";
+  if (/그림|색|물감|미술|꾸미/.test(source)) return "알록달록 생각을 펼쳐 보아요!";
+  const base = currentTitle.trim().replace(/^(그림책 독후활동\s*[·:-]?\s*)/, "") || "우리의 놀이";
+  return `${base}, 생각이 활짝 피어났어요!`;
+};
+
 const htmlToPlain = (html: string) => {
   if (typeof document === "undefined") return html.replace(/<[^>]*>/g, "");
   const box = document.createElement("div"); box.innerHTML = html;
@@ -195,8 +208,10 @@ export default function Home() {
   const generate = (idx: number) => {
     const p = plays[idx];
     const source = p.note.trim() || `아이들이 ${p.title}에 관심을 보이며 다양한 재료와 방법으로 놀이함`;
+    const newspaperTitle = makeNewspaperTitle(source, p.title, p.isBookPlay);
     updatePlay(idx, {
-      description: naturalizeNote(source, p.title),
+      title: newspaperTitle,
+      description: naturalizeNote(source, newspaperTitle),
       approved: false,
     });
   };
@@ -300,7 +315,7 @@ export default function Home() {
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload"><span>{p.bookCover?"표지 이미지 변경":"＋ 표지 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>놀이 요약 메모 <span className="description-guide">핵심 행동과 아이들의 반응만 짧게 적어도 됩니다</span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value})} placeholder="예: 아이들이 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        <button className="ai-button" onClick={()=>generate(pi)}>✦ AI 자연스러운 놀이설명 만들기</button>
+        <button className="ai-button" onClick={()=>generate(pi)}>✦ AI 놀이신문 제목·설명 만들기</button>
         <label>놀이에 대한 설명 <span className="description-guide">3줄 이상 · 최대 6줄 권장 ({p.description.trim().length}자)</span><textarea rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label>
         <button className={p.approved?"approved":"approve"} onClick={()=>updatePlay(pi,{approved:!p.approved})}>{p.approved?"✓ 승인 완료":"문장 확인 후 승인"}</button>
         <div className="photo-count-row"><p className="mini-label">사진 데이터는 항상 8칸 · 사용하지 않는 칸은 null 저장</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
