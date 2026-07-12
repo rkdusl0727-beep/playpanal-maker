@@ -28,3 +28,4 @@ footer p{max-height:7.75em;display:-webkit-box;-webkit-box-orient:vertical;-webk
 .has-book-card:not(.card-4) .photo-grid{grid-template-rows:repeat(2,70px)}
 .has-book-card:not(.card-4) .photo-grid{grid-template-rows:repeat(2,68px)}
 .has-book-card{overflow:hidden}
+.ai-button:disabled{opacity:.42;cursor:not-allowed}.play-editor textarea::placeholder{color:#9aa8b1;font-size:12px}
