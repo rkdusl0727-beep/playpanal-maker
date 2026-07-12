@@ -304,13 +304,31 @@ const makeWeeklyLearning = (allPlays: Play[], theme: string) => {
     ? "계절의 특징을 자연스럽게 알아보았어요"
     : `${theme}에 담긴 특징을 자연스럽게 발견해보았어요`;
   const learningLines = [
-    `이번 주에 유아들은 ${withObject(subject)} 여러 재료와 방법으로 탐색했어요.`,
-    `놀이 속 모습과 소리의 특징을 비교하며 ${seasonal}.`,
-    "재료와 도구를 활용해 생각과 느낌을 창의적으로 표현했답니다.",
-    "친구의 표현을 존중하고 생각을 나누며 함께 놀이를 완성했어요.",
-    "도구를 안전하게 사용하고 스스로 놀이를 이어가는 경험을 했어요.",
+    `이번 주에 유아들은 ${withObject(subject)} 여러 재료와 방법으로 살펴보며 놀이를 시작했어요.`,
+    `놀이 속에서 발견한 모습과 소리를 서로 비교해 보면서 ${seasonal}.`,
+    "재료와 도구의 특성을 알아가며 떠오른 생각과 느낌을 자신만의 방법으로 표현했답니다.",
+    "친구의 표현을 존중하고 이야기를 나누는 과정에서 함께 놀이를 풍성하게 만들어갔어요.",
+    "필요한 도구를 안전하게 사용하고, 관심이 이어지는 방향으로 스스로 놀이를 확장해 볼 수 있었어요.",
   ];
   return learningLines.join("\n");
+};
+
+const saveBlobWithPicker = async (blob: Blob, suggestedName: string) => {
+  const picker = (window as Window & { showSaveFilePicker?: (options?: unknown) => Promise<{ createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> }> }).showSaveFilePicker;
+  if (picker) {
+    try {
+      const handle = await picker({ suggestedName, types: [{ description: "놀이 패널 파일", accept: { [blob.type || "application/octet-stream"]: [`.${suggestedName.split(".").pop()}`] } }] });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (error) {
+      if ((error as DOMException)?.name === "AbortError") return;
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = suggestedName; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 const htmlToPlain = (html: string) => {
@@ -495,7 +513,8 @@ export default function Home() {
     const img = new Image(); img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     await img.decode(); const canvas = document.createElement("canvas"); canvas.width = 1588; canvas.height = 2246;
     canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const a = document.createElement("a"); a.download = `${theme}-놀이패널.png`; a.href = canvas.toDataURL("image/png"); a.click();
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"));
+    if (blob) await saveBlobWithPicker(blob, `${theme}-놀이패널.png`);
   };
 
   const exportPpt = async () => {
@@ -573,7 +592,8 @@ export default function Home() {
       }
       slide.addImage({ data: logoData, x: 5.77, y: 11.28, w: 2.15, h: .36 });
     }
-    await pptx.writeFile({ fileName: `${theme}-놀이패널.pptx` });
+    const blob = await (pptx.write as unknown as (options: { outputType: string }) => Promise<Blob>)({ outputType: "blob" });
+    await saveBlobWithPicker(blob, `${theme}-놀이패널.pptx`);
   };
 
   return <main className="app-shell">
