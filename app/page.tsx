@@ -171,7 +171,9 @@ const naturalizeNote = (note: string, playTitle: string) => {
     return "여름 소리 그림책을 함께 읽으며 어떤 소리가 떠오르는지 이야기를 나누어보았어요. 매미와 파도, 빗방울 등 여름의 다양한 소리를 모아 우드락 위에 연필로 선과 모양을 새긴 후 물감을 발라 판화를 완성했답니다.";
   }
   if (/(블록|놀잇감)/.test(context) && /(여름소리|여름 소리)/.test(context)) {
-    return "어제 관심을 보였던 여름 소리를 다시 들어보고, 교실의 블록과 악기, 색연필 등 다양한 놀잇감으로 소리를 만들어보았어요. 친구와 두 명씩 짝을 지어 파도, 천둥, 매미, 빗소리와 빗방울 소리를 표현하며 서로의 생각을 나누었답니다.";
+    return /확장활동/.test(context)
+      ? "어제 관심을 보였던 여름 소리를 다시 들어보고, 교실의 블록과 악기, 색연필 등 다양한 놀잇감으로 소리를 만들어보았어요. 친구와 두 명씩 짝을 지어 파도, 천둥, 매미, 빗소리와 빗방울 소리를 표현하며 서로의 생각을 나누는 놀이로 자연스럽게 확장되었답니다."
+      : "어제 관심을 보였던 여름 소리를 다시 들어보고, 교실의 블록과 악기, 색연필 등 다양한 놀잇감으로 소리를 만들어보았어요. 친구와 두 명씩 짝을 지어 파도, 천둥, 매미, 빗소리와 빗방울 소리를 표현하며 서로의 생각을 나누었답니다.";
   }
   const details = note.trim().split(/[.\n]+/).map(part => part.trim()).filter(Boolean).map((part, index) => {
     let sentence = part
@@ -252,6 +254,9 @@ const naturalizeNote = (note: string, playTitle: string) => {
   while ((story.length < 105 || (story.match(/[.!?]/g)?.length ?? 0) < 2) && additionIndex < additions.length) {
     if (!story.includes(additions[additionIndex])) story = `${story} ${additions[additionIndex]}`;
     additionIndex += 1;
+  }
+  if (/확장활동/.test(context) && !/확장되었답니다/.test(story)) {
+    story = story.replace(/(?:해보았어요|했어요|했답니다|느꼈어요|나누었어요)\.$/, "하며 앞선 놀이의 관심이 새로운 놀이로 자연스럽게 확장되었답니다.");
   }
   return finalizeDescription(story);
 };
