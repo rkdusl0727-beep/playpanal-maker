@@ -120,7 +120,7 @@ export default function Home() {
   const [end, setEnd] = useState(initial[1]);
   const [plays, setPlays] = useState<Play[]>(() => Array.from({ length: 5 }, (_, i) => makePlay(i)));
   const [weeklyLearning, setWeeklyLearning] = useState("여름의 태양과 바다, 비와 다양한 여름 소리를 여러 재료와 방법으로 탐색하며 계절의 특징을 자연스럽게 알아보았습니다. 자신의 생각과 느낌을 창의적으로 표현하고, 친구들과 함께 여름 풍경과 소리를 만들며 서로의 표현을 감상하고 소통하는 경험을 했습니다.");
-  const [weeklyLearningHtml, setWeeklyLearningHtml] = useState("여름의 태양과 바다, 비와 다양한 여름 소리를 여러 재료와 방법으로 탐색하며 계절의 특징을 자연스럽게 알아보았습니다. 자신의 생각과 느낌을 창의적으로 표현하고, 친구들과 함께 여름 풍경과 소리를 만들며 서로의 표현을 감상하고 소통하는 경험을 했습니다.");
+  const [learningTitleColor, setLearningTitleColor] = useState("#075f9b");
   const [backgroundCss, setBackgroundCss] = useState(monthlyBackgrounds[6].css);
   const [backgroundColor, setBackgroundColor] = useState(`#${monthlyBackgrounds[6].color}`);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -238,8 +238,8 @@ export default function Home() {
       slide.addText(p.description, { x: textX, y: textY + .31, w: textW, h: wide ? 1.18 : 1.05, fontFace: "Freesentation", fontSize: wide ? 8 : 7.4, color: "172332", margin: .02, valign: "top", breakLine: false, fit: "shrink" });
     });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
-    slide.addText("놀이를 통한 배움", { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, color: "075F9B", margin: 0 });
-    slide.addText(htmlToPptRuns(weeklyLearningHtml, "#172332"), { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 8.5, bold: true, margin: 0, valign: "top", breakLine: false, fit: "shrink" });
+    slide.addText("놀이를 통한 배움", { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, color: learningTitleColor.replace("#", "").toUpperCase(), margin: 0 });
+    slide.addText(weeklyLearning, { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 8.5, bold: true, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
     await pptx.writeFile({ fileName: `${theme}-놀이패널.pptx` });
   };
 
@@ -275,7 +275,7 @@ export default function Home() {
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
-      <section className="play-editor weekly-editor"><RichColorEditor label="한 주 전체 놀이를 통한 배움" html={weeklyLearningHtml} onChange={(html,text)=>{setWeeklyLearningHtml(html);setWeeklyLearning(text)}} /></section>
+      <section className="play-editor weekly-editor"><div className="learning-title-editor"><div><b>놀이를 통한 배움</b><span>타이틀 색상만 변경됩니다</span></div><input aria-label="놀이를 통한 배움 타이틀 색상" type="color" value={learningTitleColor} onChange={e=>setLearningTitleColor(e.target.value)} /></div><label>한 주 전체 배움 내용<textarea rows={6} value={weeklyLearning} onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
       {plays.length<6&&<button className="add-play" onClick={()=>setPlays(v=>[...v,makePlay(v.length)])}>＋ 놀이 하나 더 추가</button>}
     </aside>
 
@@ -288,7 +288,7 @@ export default function Home() {
           <div className="photo-grid">{p.photos.map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
           <div className="play-copy"><h4>{p.title}</h4><p>{p.description}</p></div>
         </section>)}</div>
-        <footer><b>놀이를 통한 배움</b><p dangerouslySetInnerHTML={{__html:weeklyLearningHtml}}/></footer>
+        <footer><b style={{color:learningTitleColor}}>놀이를 통한 배움</b><p>{weeklyLearning}</p></footer>
       </article>
     </section>
   </main>;
