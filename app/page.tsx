@@ -105,6 +105,7 @@ const finalizeDescription = (value: string) => {
     .replace(/\s+([,.!?])/g, "$1")
     .replace(/([.!?])(?=\S)/g, "$1 ")
     .replace(/\s{2,}/g, " ")
+    .replace(/완성한\s+작품([은을이가의])/g, "완성한\u00a0작품$1")
     .trim();
   if (text && !/[.!?]$/.test(text)) text += ".";
   return text;
