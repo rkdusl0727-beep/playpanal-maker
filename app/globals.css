@@ -30,3 +30,4 @@ footer p{max-height:7.75em;display:-webkit-box;-webkit-box-orient:vertical;-webk
 .has-book-card{overflow:hidden}
 .ai-button:disabled{opacity:.42;cursor:not-allowed}.play-editor textarea::placeholder{color:#9aa8b1;font-size:12px}
 .photo-count-row{display:flex;justify-content:space-between;align-items:end;gap:10px}.photo-count-row p{margin:0}.photo-count-row label{display:flex;grid-template-columns:none;flex-direction:row;align-items:center;gap:6px;white-space:nowrap}.photo-count-row select{width:78px;padding:7px}.photo-grid.photos-8{grid-template-columns:repeat(4,1fr)}
+.logo-editor .section-title span{font-size:10px;color:#7a8993}.logo-editor .text-btn{justify-self:end}.panel footer{padding-bottom:34px}.panel-logo{position:absolute;right:0;bottom:0;width:190px;height:32px;object-fit:contain;object-position:right center}

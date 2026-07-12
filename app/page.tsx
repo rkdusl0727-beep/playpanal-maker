@@ -156,6 +156,7 @@ export default function Home() {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundX, setBackgroundX] = useState(50);
   const [backgroundY, setBackgroundY] = useState(50);
+  const [logoImage, setLogoImage] = useState<string | null>("/kindergarten-logo.png");
   const panelRef = useRef<HTMLDivElement>(null);
 
   const updateRange = (y: number, m: number, w: number) => {
@@ -197,6 +198,13 @@ export default function Home() {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = () => updatePlay(pi, { bookCover: { src: String(reader.result), x: 50, y: 50 } });
+    reader.readAsDataURL(file);
+  };
+
+  const uploadLogo = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setLogoImage(String(reader.result));
     reader.readAsDataURL(file);
   };
 
@@ -287,6 +295,16 @@ export default function Home() {
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
     slide.addText(htmlToPptRuns(learningTitleHtml, "#075f9b"), { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, margin: 0 });
     slide.addText(weeklyLearning, { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 10.5, bold: true, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
+    if (logoImage) {
+      let logoData = logoImage;
+      if (!logoData.startsWith("data:")) {
+        const blob = await fetch(logoData).then(response => response.blob());
+        logoData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob);
+        });
+      }
+      slide.addImage({ data: logoData, x: 5.77, y: 11.28, w: 2.15, h: .36 });
+    }
     await pptx.writeFile({ fileName: `${theme}-놀이패널.pptx` });
   };
 
@@ -325,6 +343,7 @@ export default function Home() {
         </div>)}</div>
       </section>)}
       <section className="play-editor weekly-editor"><RichColorEditor label="놀이를 통한 배움 타이틀" html={learningTitleHtml} onChange={(html)=>setLearningTitleHtml(html)} /><label>한 주 전체 배움 내용 <span className="description-guide">최대 5줄까지 표시됩니다</span><textarea rows={5} value={weeklyLearning} onChange={e=>setWeeklyLearning(e.target.value)} /></label></section>
+      <section className="play-editor logo-editor"><div className="section-title"><b>어린이집 로고</b><span>패널 제일 하단에 표시됩니다</span></div><label className="upload background-upload"><span>{logoImage?"로고 이미지 변경":"＋ 로고 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={uploadLogo}/></label>{logoImage&&<button className="text-btn" onClick={()=>setLogoImage(null)}>로고 삭제</button>}</section>
       {plays.length<6&&<button className="add-play" onClick={()=>setPlays(v=>[...v,makePlay(v.length)])}>＋ 놀이 하나 더 추가</button>}
     </aside>
 
@@ -337,7 +356,7 @@ export default function Home() {
           <div className={`photo-grid photos-${p.photoCount}`}>{p.photos.slice(0,p.photoCount).map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
           <div className={`play-copy ${p.isBookPlay?"book-copy":""}`}><h4>{p.title}</h4>{p.isBookPlay?<div className="book-copy-body"><div className="book-cover-slot">{p.bookCover?<img src={p.bookCover.src} alt={`${p.title} 그림책 표지`} style={{objectPosition:`${p.bookCover.x}% ${p.bookCover.y}%`}}/>:<span>그림책<br/>표지</span>}</div><p>{p.description}</p></div>:<p>{p.description}</p>}</div>
         </section>)}</div>
-        <footer><b dangerouslySetInnerHTML={{__html:learningTitleHtml}}/><p>{weeklyLearning}</p></footer>
+        <footer><b dangerouslySetInnerHTML={{__html:learningTitleHtml}}/><p>{weeklyLearning}</p>{logoImage&&<img className="panel-logo" src={logoImage} alt="어린이집 로고"/>}</footer>
       </article>
     </section>
   </main>;
