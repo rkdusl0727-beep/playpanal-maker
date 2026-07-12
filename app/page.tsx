@@ -72,6 +72,44 @@ const pretty = (iso: string) => {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 };
 
+// 메모체는 편집용 입력에서만 허용하고, 생성 결과와 신문에는 완성형 문장만 남긴다.
+const finalizeDescription = (value: string) => {
+  let text = value
+    .replace(/천정/g, "천장")
+    .replace(/읽고책/g, "읽고 책")
+    .replace(/태양을꾸/g, "태양을 꾸")
+    .replace(/숨을불어/g, "숨을 불어")
+    .replace(/([가-힣])하고([가-힣])/g, "$1하고 $2")
+    .replace(/([가-힣])고([가-힣])/g, "$1고 $2")
+    .replace(/(살펴|관찰해|그려|만들어|꾸며|읽어|놀이해|표현해|탐색해|완성해|매달아|붙여|접어|오려|찍어|불어|섞어|칠해|그어|이어|쌓아|놓아|담아|찾아|느껴|만져|흔들어)봄\s*([,，])/g, "$1보고$2")
+    .replace(/(관찰|표현|이야기|탐색|완성|놀이|기뻐|좋아|즐거워|궁금해)함\s*([,，])/g, "$1하며$2")
+    .replace(/했음\s*([,，])/g, "했고$1")
+    .replace(/(살펴|관찰해|그려|만들어|꾸며|읽어|놀이해|표현해|탐색해|완성해|매달아|붙여|접어|오려|찍어|불어|섞어|칠해|그어|이어|쌓아|놓아|담아|찾아|느껴|만져|흔들어)봄(?=\s*[.!?]|$)/g, "$1보았어요")
+    .replace(/관찰함(?=\s*[.!?]|$)/g, "관찰해보았어요")
+    .replace(/표현함(?=\s*[.!?]|$)/g, "표현해보았어요")
+    .replace(/이야기함(?=\s*[.!?]|$)/g, "이야기를 나누었어요")
+    .replace(/탐색함(?=\s*[.!?]|$)/g, "탐색해보았어요")
+    .replace(/완성함(?=\s*[.!?]|$)/g, "완성했답니다")
+    .replace(/놀이함(?=\s*[.!?]|$)/g, "놀이했어요")
+    .replace(/기뻐함(?=\s*[.!?]|$)/g, "기뻐했답니다")
+    .replace(/좋아함(?=\s*[.!?]|$)/g, "좋아했어요")
+    .replace(/즐거워함(?=\s*[.!?]|$)/g, "즐거워했답니다")
+    .replace(/궁금해함(?=\s*[.!?]|$)/g, "궁금해했어요")
+    .replace(/했음(?=\s*[.!?]|$)/g, "했어요")
+    .replace(/해봄(?=\s*[.!?]|$)/g, "해보았어요")
+    .replace(/만들어봄(?=\s*[.!?]|$)/g, "만들어보았어요")
+    .replace(/그려봄(?=\s*[.!?]|$)/g, "그려보았어요")
+    .replace(/살펴봄(?=\s*[.!?]|$)/g, "살펴보았어요")
+    .replace(/매달아봄(?=\s*[.!?]|$)/g, "매달아 감상해보았어요")
+    .replace(/([가-힣]+)함(?=\s*[.!?]|$)/g, "$1했어요")
+    .replace(/\s+([,.!?])/g, "$1")
+    .replace(/([.!?])(?=\S)/g, "$1 ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (text && !/[.!?]$/.test(text)) text += ".";
+  return text;
+};
+
 const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
   if (/분필/.test(context) && /(하늘정원|옥상정원|옥상|정원)/.test(context) && /바닥/.test(context)) {
@@ -80,8 +118,9 @@ const naturalizeNote = (note: string, playTitle: string) => {
     const subjects = sea && fruit ? "바다 생물과 여름 과일" : sea ? "물고기와 거북이 등 바다 생물" : fruit ? "수박과 참외 등 여름 과일" : "여름에 떠오르는 다양한 모습";
     return `야외용 분필을 들고 하늘정원으로 나가 바닥에 여름 풍경을 그려보았어요. ${subjects}을 자유롭게 표현하고, 친구와 생각을 나누며 커다란 협동 작품도 완성했답니다. 서로의 그림이 이어져 하나의 여름 풍경이 되어가는 모습을 살펴보며 즐겁게 놀이했어요.`;
   }
-  if (/여름이\s*물러온다/.test(context) && /태양/.test(context)) {
-    return "「여름이 물러온다」를 함께 읽으며 책 표지에 담긴 여름 태양을 살펴보았어요. 습자지를 뭉쳐 태양을 꾸미고, 파란색으로 칠한 구름에는 숨을 불어 우리만의 장면을 완성했답니다. 완성한 작품은 교실 천장에 매달아 감상하며 이야기의 장면을 다시 떠올려보았어요.";
+  if (/여름이\s*(?:물러|몰려)온다/.test(context) && /태양/.test(context)) {
+    const bookTitle = /여름이\s*몰려온다/.test(context) ? "여름이 몰려온다" : "여름이 물러온다";
+    return `「${bookTitle}」를 함께 읽으며 책 표지에 담긴 여름 태양을 살펴보았어요. 습자지를 뭉쳐 태양을 꾸미고, 파란색으로 칠한 구름에는 숨을 불어 우리만의 장면을 완성했답니다. 완성한 작품은 교실 천장에 매달아 감상하며 이야기의 장면을 다시 떠올려보았어요.`;
   }
   if (/(블록|놀잇감)/.test(context) && /(여름소리|여름 소리)/.test(context)) {
     return "다양한 블록과 놀잇감을 살펴보며 친구와 짝을 지어 여름에 들을 수 있는 소리를 함께 떠올려보았어요. 매미, 파도, 빗소리, 천둥, 물방울 소리 등을 몸짓과 말, 도구로 표현하며 서로의 생각을 나누었답니다. 주변에서 들리는 소리의 특징을 비교하고 자신만의 방법으로 나타내는 즐거움을 느꼈어요.";
@@ -154,7 +193,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
       .replace(/그려보았어요\.$/, "그리는 즐거움을 느꼈어요.");
     return sentence;
   });
-  return varied.join(" ");
+  return finalizeDescription(varied.join(" "));
 };
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
@@ -307,7 +346,8 @@ export default function Home() {
     }));
   };
   const publishDraft = (idx: number, title: string, description: string) => {
-    const next = plays.map((play, i) => i === idx ? { ...play, title, description, publishedTitle: title, publishedDescription: description, approved: true } : play);
+    const completedDescription = finalizeDescription(description);
+    const next = plays.map((play, i) => i === idx ? { ...play, title, description: completedDescription, publishedTitle: title, publishedDescription: completedDescription, approved: true } : play);
     setPlays(next);
     if (next.every(play => play.approved)) setWeeklyLearning(makeWeeklyLearning(next, theme));
   };
