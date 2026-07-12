@@ -74,12 +74,20 @@ const pretty = (iso: string) => {
 
 const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
+  if (/(블록|놀잇감)/.test(context) && /(여름소리|여름 소리)/.test(context)) {
+    return "다양한 블록과 놀잇감을 살펴보며 친구와 짝을 지어 여름에 들을 수 있는 소리를 함께 떠올려보았어요. 매미, 파도, 빗소리, 천둥, 물방울 소리 등을 몸짓과 말, 도구로 표현하며 서로의 생각을 나누었답니다. 주변에서 들리는 소리의 특징을 비교하고 자신만의 방법으로 나타내는 즐거움을 느꼈어요.";
+  }
   const details = note.trim().split(/[.\n]+/).map(part => part.trim()).filter(Boolean).map((part, index) => {
     let sentence = part
       .replace(/^(아이들은?|아이들이|유아들은?|유아들이|어린이들은?|어린이들이|친구들은?|친구들이|아이가|유아가)\s*/, "")
       .replace(/을 가지고/g, "을 들고")
       .replace(/를 가지고/g, "를 활용해")
       .replace(/으로 가서/g, "으로 나가")
+      .replace(/친구와 짝을 정해서/g, "친구와 짝을 지어")
+      .replace(/함께 생각하는 여름\s*소리는 무엇인지 이야기 나누고/g, "여름에 들을 수 있는 소리를 함께 떠올려 이야기 나눈 뒤")
+      .replace(/이야기 나누고/g, "이야기를 나눈 뒤")
+      .replace(/메미/g, "매미")
+      .replace(/소리등/g, "소리 등")
       .replace(/여름풍경을 바닥에/g, "바닥에 여름 풍경을")
       .replace(/거북이\s*물고기등\s*다양하게\s*그림그리고\s*친구들과\s*함께\s*합동그림도\s*그려봄$/g, "거북이와 물고기 등 다양한 모습을 그리고, 친구들과 함께 합동 그림도 완성해보았어요")
       .replace(/거북이\s*물고기\s*등\s*다양하게\s*그림$/g, "거북이와 물고기 등 다양한 모습을 그려 넣었답니다")
@@ -451,7 +459,7 @@ export default function Home() {
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload"><span>{p.bookCover?"표지 이미지 변경":"＋ 표지 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>놀이 메모 <span className="memo-guide">메모를 적고 <kbd>Enter</kbd>를 누르면 제목과 설명이 만들어집니다 <i>·</i> 줄바꿈은 <kbd>Shift + Enter</kbd></span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,title:"",description:"",publishedTitle:"",publishedDescription:"",approved:false})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing)e.preventDefault()}} onKeyUp={e=>{if(e.key==="Enter"&&!e.shiftKey)generateFromNote(pi,e.currentTarget.value)}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">실제 놀이신문과 같은 글꼴·크기·줄 간격 ({p.description.trim().length}자)</span><div className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" onInput={e=>updatePlay(pi,{description:e.currentTarget.innerText,approved:false})}>{p.description}</div></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
+        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">실제 놀이신문과 같은 글꼴·크기·줄 간격 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={5} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
         <div className="photo-count-row"><p className="mini-label">사진 데이터는 항상 8칸 · 사용하지 않는 칸은 null 저장</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>
