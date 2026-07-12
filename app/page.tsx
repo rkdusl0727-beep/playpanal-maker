@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useMemo, useRef, useState } from "react";
 
 type Photo = { src: string; x: number; y: number } | null;
 type Play = {
@@ -402,6 +402,8 @@ export default function Home() {
   const [backgroundY, setBackgroundY] = useState(50);
   const [logoImage, setLogoImage] = useState<string | null>("/kindergarten-logo.png");
   const panelRef = useRef<HTMLDivElement>(null);
+  const photoDragRef = useRef<{ pi: number; si: number; x: number; y: number; startX: number; startY: number; width: number; height: number } | null>(null);
+  const orderDragRef = useRef<{ pi: number; si: number } | null>(null);
 
   const updateRange = (y: number, m: number, w: number) => {
     const [s, e] = weekRange(y, m, w); setStart(s); setEnd(e);
@@ -471,6 +473,30 @@ export default function Home() {
       return { ...p, photos };
     }));
   };
+  const startPhotoOrderDrag = (pi: number, si: number) => { orderDragRef.current = { pi, si }; };
+  const dropPhotoOrder = (pi: number, si: number) => {
+    const drag = orderDragRef.current;
+    if (drag && drag.pi === pi && drag.si !== si) movePhoto(pi, drag.si, si);
+    orderDragRef.current = null;
+  };
+  const startPhotoDrag = (e: ReactPointerEvent<HTMLImageElement>, pi: number, si: number, ph: Photo) => {
+    if (!ph) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const rect = e.currentTarget.getBoundingClientRect();
+    photoDragRef.current = { pi, si, x: ph.x, y: ph.y, startX: e.clientX, startY: e.clientY, width: rect.width, height: rect.height };
+  };
+  const dragPhoto = (e: ReactPointerEvent<HTMLImageElement>) => {
+    const drag = photoDragRef.current;
+    if (!drag) return;
+    const x = Math.max(0, Math.min(100, drag.x - ((e.clientX - drag.startX) / drag.width) * 100));
+    const y = Math.max(0, Math.min(100, drag.y - ((e.clientY - drag.startY) / drag.height) * 100));
+    setPlays(current => current.map((p, i) => {
+      if (i !== drag.pi || !p.photos[drag.si]) return p;
+      const photos = [...p.photos]; photos[drag.si] = { ...photos[drag.si]!, x, y }; return { ...p, photos };
+    }));
+  };
+  const endPhotoDrag = () => { photoDragRef.current = null; };
 
   const uploadBackground = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -626,9 +652,9 @@ export default function Home() {
         <label>놀이 메모 <span className="memo-guide">메모를 적고 <kbd>Enter</kbd>를 누르면 제목과 설명이 만들어집니다 <i>·</i> 줄바꿈은 <kbd>Shift + Enter</kbd></span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,title:"",description:"",publishedTitle:"",publishedDescription:"",approved:false})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing)e.preventDefault()}} onKeyUp={e=>{if(e.key==="Enter"&&!e.shiftKey)generateFromNote(pi,e.currentTarget.value)}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
         {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">실제 놀이신문과 같은 글꼴·크기·줄 간격 · 기본 4줄~최대 6줄 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToSixLines(e.currentTarget.value,p.isBookPlay,pi===4),approved:false})}/></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
         <div className="photo-count-row"><p className="mini-label">Shift로 여러 장을 선택하면 선택한 칸부터 순서대로 채워집니다</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
-        <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si}>
+        <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si} draggable onDragStart={()=>startPhotoOrderDrag(pi,si)} onDragOver={e=>e.preventDefault()} onDrop={()=>dropPhotoOrder(pi,si)}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden multiple type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>
-          <div className="photo-order"><button type="button" onClick={()=>movePhoto(pi,si,si-1)} disabled={si===0}>↑ 위로</button><button type="button" onClick={()=>movePhoto(pi,si,si+1)} disabled={si===p.photoCount-1}>↓ 아래로</button></div>
+          <span className="photo-drag-hint">드래그해서 순서 변경</span>
           {ph&&<><label>좌우 <input type="range" min="0" max="100" value={ph.x} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,x:+e.target.value};updatePlay(pi,{photos})}}/></label><label>상하 <input type="range" min="0" max="100" value={ph.y} onChange={e=>{const photos=[...p.photos];photos[si]={...ph,y:+e.target.value};updatePlay(pi,{photos})}}/></label></>}
         </div>)}</div>
       </section>)}
@@ -642,7 +668,7 @@ export default function Home() {
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
         <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=><section className={`play-card card-${i} ${p.isBookPlay?"has-book-card":""}`} key={p.id}>
-          <div className={`photo-grid photos-${p.photoCount}`}>{p.photos.slice(0,p.photoCount).map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.approved?p.publishedTitle:p.title} ${j+1}`} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
+          <div className={`photo-grid photos-${p.photoCount}`}>{p.photos.slice(0,p.photoCount).map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${p.approved?p.publishedTitle:p.title} ${j+1}`} draggable={false} onPointerDown={e=>startPhotoDrag(e,i,j,ph)} onPointerMove={dragPhoto} onPointerUp={endPhotoDrag} onPointerCancel={endPhotoDrag} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
           <div className={`play-copy ${p.isBookPlay?"book-copy":""}`}><h4>{/확장활동/.test(p.note)&&<span className="expansion-badge">확장활동</span>}{p.publishedTitle}</h4>{p.isBookPlay?<div className="book-copy-body"><div className={`book-cover-slot ${p.bookCover?"has-cover":""}`}>{p.bookCover?<img src={p.bookCover.src} alt={`${p.publishedTitle || "놀이"} 그림책 표지`} style={{objectPosition:`${p.bookCover.x}% ${p.bookCover.y}%`}}/>:<span>그림책<br/>표지</span>}</div><p>{p.publishedDescription}</p></div>:<p>{p.publishedDescription}</p>}</div>
         </section>)}</div>
         <footer><b dangerouslySetInnerHTML={{__html:learningTitleHtml}}/><p>{weeklyLearning}</p>{logoImage&&<img className="panel-logo" src={logoImage} alt="어린이집 로고"/>}</footer>
