@@ -73,43 +73,31 @@ const pretty = (iso: string) => {
 };
 
 const naturalizeNote = (note: string, playTitle: string) => {
-  let observation = note.trim().replace(/\s+/g, " ").replace(/[.!?]+$/g, "");
-  observation = observation
-    .replace(/만들어봄$/g, "만들어 보았어요")
-    .replace(/표현해봄$/g, "표현해 보았어요")
-    .replace(/살펴봄$/g, "살펴보았어요")
-    .replace(/그려봄$/g, "그려 보았어요")
-    .replace(/해봄$/g, "해보았어요")
-    .replace(/했음$/g, "했어요")
-    .replace(/하였음$/g, "했어요")
-    .replace(/관찰함$/g, "관찰했어요")
-    .replace(/탐색함$/g, "탐색해보았어요")
-    .replace(/표현함$/g, "표현해보았어요")
-    .replace(/함$/g, "해보았어요")
-    .replace(/만듦$/g, "만들었어요");
-  if (!/^(아이들|유아들|친구들|어린이들)/.test(observation)) observation = `아이들은 ${observation}`;
-  if (!/[.!?]$/.test(observation)) observation += ".";
   const context = `${note} ${playTitle}`;
-  let learning = "놀이 속에서 궁금한 점을 살펴보고 친구와 생각을 나누며 경험을 넓혀보았답니다.";
-  if (/그림|색|물감|분필|미술|꾸미|표현/.test(context)) learning = "다양한 색과 모양으로 자신의 생각과 느낌을 자유롭게 표현해보았답니다.";
-  else if (/소리|노래|악기|리듬/.test(context)) learning = "주변의 소리에 귀 기울이고 서로의 표현을 들으며 즐겁게 소통해보았어요.";
-  else if (/자연|꽃|나무|나뭇잎|숲|계절/.test(context)) learning = "자연과 계절의 변화를 찬찬히 살펴보며 새로운 모습을 발견해보았답니다.";
-  else if (/블록|쌓|구성|만들/.test(context)) learning = "친구와 생각을 나누고 방법을 조절하며 함께 놀이를 만들어가는 즐거움을 느껴보았어요.";
-  else if (/책|그림책|이야기/.test(context)) learning = "이야기를 자신의 경험과 연결하고 생각과 느낌을 말과 그림으로 표현해보았답니다.";
-  return `${observation} ${learning}`;
+  if (/분필/.test(context) && /바닥|옥상|정원/.test(context)) return "아이들은 넓은 바닥을 커다란 도화지 삼아 야외용 분필로 떠오른 풍경을 그려보았어요. 다양한 색과 선으로 자신의 생각과 느낌을 자유롭게 표현해보았답니다.";
+  if (/물감/.test(context) && /빨대|불어/.test(context)) return "아이들은 여러 색의 물감을 섞어 달라지는 모습을 살펴보고, 빨대로 물감을 불어 새로운 무늬를 만들어보았어요. 재료의 변화를 탐색하며 떠오른 생각을 자신만의 방법으로 표현했답니다.";
+  if (/비|빗방울|수채|번짐/.test(context)) return "아이들은 비 오는 날의 모습과 느낌을 떠올리며 물감이 번지는 모습을 살펴보았어요. 색이 만나 달라지는 과정을 즐기며 자신의 경험을 그림으로 표현해보았답니다.";
+  if (/소리|노래|악기|리듬/.test(context)) return "아이들은 주변에서 들리는 여러 소리에 귀 기울이고 몸짓과 도구로 느낌을 나타내보았어요. 서로의 소리를 듣고 생각을 나누며 즐겁게 놀이를 이어갔답니다.";
+  if (/책|그림책|이야기/.test(context)) return "아이들은 그림책 속 장면을 찬찬히 살펴보고 기억에 남은 이야기를 자신의 경험과 연결해보았어요. 떠오른 생각과 느낌을 말과 그림으로 자유롭게 표현했답니다.";
+  if (/블록|쌓|구성|만들/.test(context)) return "아이들은 필요한 재료를 고르고 여러 방법을 시도하며 생각한 모습을 만들어보았어요. 친구와 의견을 나누고 방법을 조절하며 함께 놀이를 완성해갔답니다.";
+  if (/자연|꽃|나무|나뭇잎|숲|계절/.test(context)) return "아이들은 주변의 자연과 계절 변화를 천천히 살펴보며 눈에 띄는 모습을 발견해보았어요. 관찰한 특징을 서로 이야기하고 다양한 방법으로 표현해보았답니다.";
+  if (/그림|색|미술|꾸미|표현/.test(context)) return "아이들은 여러 가지 미술 재료를 살펴보고 떠오른 생각을 자신만의 방법으로 표현해보았어요. 색과 모양을 자유롭게 구성하며 표현하는 즐거움을 느껴보았답니다.";
+  return "아이들은 관심 있는 재료와 방법을 스스로 선택하고 궁금한 점을 놀이로 탐색해보았어요. 친구와 생각을 나누며 새로운 방법을 발견하고 즐겁게 경험을 넓혀갔답니다.";
 };
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
   const source = `${note} ${currentTitle}`.replace(/\s+/g, " ");
-  if (isBookPlay) return "책장을 넘기자, 이야기가 놀이로 활짝!";
-  if (/비|빗방울|수채|번짐/.test(source)) return "톡톡 빗방울, 알록달록 작품으로!";
-  if (/소리|악기|노래|리듬/.test(source)) return "귀를 쫑긋! 우리만의 소리를 찾아서";
-  if (/물놀이|바다|파도|물고기|여름/.test(source)) return "찰랑찰랑, 시원한 여름이 놀이로!";
-  if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연을 만났더니 놀이가 피어났어요!";
-  if (/블록|쌓|구성|만들/.test(source)) return "상상이 차곡차곡, 멋진 세상을 만들어요!";
-  if (/그림|색|물감|미술|꾸미/.test(source)) return "알록달록 생각을 펼쳐 보아요!";
-  const base = currentTitle.trim().replace(/^(그림책 독후활동\s*[·:-]?\s*)/, "") || "우리의 놀이";
-  return `${base}, 생각이 활짝 피어났어요!`;
+  if (isBookPlay) return "그림책에서 시작된 우리들의 이야기";
+  if (/분필/.test(source) && /옥상|정원/.test(source)) return "옥상정원에 펼쳐진 우리의 풍경";
+  if (/분필/.test(source) && /바닥/.test(source)) return "바닥이 커다란 도화지가 되었어요";
+  if (/물감/.test(source) && /빨대|불어/.test(source)) return "바람으로 피어난 물감 그림";
+  if (/비|빗방울|수채|번짐/.test(source)) return "물감으로 만난 비 오는 날";
+  if (/소리|악기|노래|리듬/.test(source)) return "우리 주변에서 찾은 소리";
+  if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연에서 발견한 새로운 모습";
+  if (/블록|쌓|구성|만들/.test(source)) return "생각을 모아 만든 우리 세상";
+  if (/그림|색|미술|꾸미|표현/.test(source)) return "색과 선으로 펼친 우리 생각";
+  if (/물놀이|바다|파도|물고기/.test(source)) return "물과 함께 발견한 여름 이야기";
+  return "놀이 속에서 발견한 새로운 생각";
 };
 
 const htmlToPlain = (html: string) => {
@@ -349,7 +337,7 @@ export default function Home() {
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload"><span>{p.bookCover?"표지 이미지 변경":"＋ 표지 이미지 등록"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>놀이 메모 <span className="description-guide">메모를 적고 Enter를 누르면 제목과 설명이 만들어집니다 · 줄바꿈은 Shift+Enter</span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,approved:false})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();generateFromNote(pi,e.currentTarget.value)}}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        <div className={`auto-generate-status ${p.note.trim()?"active":""}`}>{p.note.trim()?"Enter를 눌러 놀이신문 제목과 설명 만들기":"놀이 메모를 먼저 입력해 주세요"}</div>
+        <button className="ai-button" disabled={!p.note.trim()} onClick={()=>generateFromNote(pi,p.note)}>확인</button>
         {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>확인하고 필요한 부분만 고쳐 주세요</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">따뜻한 놀이신문 문체 · 2~3문장 ({p.description.trim().length}자)</span><textarea rows={4} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})}/></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>updatePlay(pi,{approved:true,publishedTitle:p.title,publishedDescription:p.description})}>{p.approved?"✓ 반영 완료":"확인 후 반영"}</button></div>}
         <div className="photo-count-row"><p className="mini-label">사진 데이터는 항상 8칸 · 사용하지 않는 칸은 null 저장</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 6|8})}><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si}>
