@@ -122,6 +122,9 @@ const naturalizeNote = (note: string, playTitle: string) => {
     const bookTitle = /여름이\s*몰려온다/.test(context) ? "여름이 몰려온다" : "여름이 물러온다";
     return `「${bookTitle}」를 함께 읽으며 책 표지에 담긴 여름 태양을 살펴보았어요. 습자지를 뭉쳐 태양을 꾸미고, 파란색으로 칠한 구름에는 숨을 불어 우리만의 장면을 완성했답니다. 완성한 작품은 교실 천장에 매달아 감상하며 이야기의 장면을 다시 떠올려보았어요.`;
   }
+  if (/우드락/.test(context) && /(판화|찍어|찍는)/.test(context) && /소리/.test(context)) {
+    return "여름 소리 그림책을 함께 읽으며 어떤 소리가 떠오르는지 이야기를 나누어보았어요. 매미와 파도, 빗방울 등 여름의 다양한 소리를 모아 우드락 위에 연필로 선과 모양을 새겨보았답니다. 새긴 판에 물감을 고르게 바르고 종이를 올려 눌러보며 그림이 찍혀 나오는 변화를 살펴보았어요. 저마다 표현한 소리를 서로 감상하며 같은 소리도 다양한 모습으로 나타날 수 있음을 느껴보았어요.";
+  }
   if (/(블록|놀잇감)/.test(context) && /(여름소리|여름 소리)/.test(context)) {
     return "다양한 블록과 놀잇감을 살펴보며 친구와 짝을 지어 여름에 들을 수 있는 소리를 함께 떠올려보았어요. 매미, 파도, 빗소리, 천둥, 물방울 소리 등을 몸짓과 말, 도구로 표현하며 서로의 생각을 나누었답니다. 주변에서 들리는 소리의 특징을 비교하고 자신만의 방법으로 나타내는 즐거움을 느꼈어요.";
   }
@@ -193,7 +196,18 @@ const naturalizeNote = (note: string, playTitle: string) => {
       .replace(/그려보았어요\.$/, "그리는 즐거움을 느꼈어요.");
     return sentence;
   });
-  return finalizeDescription(varied.join(" "));
+  let story = finalizeDescription(varied.join(" "));
+  const additions = [
+    /그림책|책을 읽|동화/.test(context) ? "이야기 속 장면을 떠올리며 기억에 남은 모습과 느낌을 서로 이야기해보았어요." : "놀이를 시작하며 떠오르는 생각과 경험을 친구들과 자연스럽게 나누어보았어요.",
+    /물감|분필|색종이|우드락|점토|크레파스|연필|종이/.test(context) ? "재료가 손끝에서 달라지는 모습을 살펴보고, 원하는 색과 모양을 골라 자신만의 방법으로 표현했답니다." : "여러 가지 방법을 직접 시도하며 놀이가 달라지는 과정을 흥미롭게 살펴보았답니다.",
+    /친구|함께|협동|짝/.test(context) ? "서로의 표현을 이어 보고 의견을 나누며 함께 완성해가는 즐거움도 느껴보았어요." : "완성된 모습을 천천히 살펴보며 놀이 과정에서 느낀 점을 편안하게 나누어보았어요.",
+  ];
+  let additionIndex = 0;
+  while ((story.length < 135 || (story.match(/[.!?]/g)?.length ?? 0) < 4) && additionIndex < additions.length) {
+    if (!story.includes(additions[additionIndex])) story = `${story} ${additions[additionIndex]}`;
+    additionIndex += 1;
+  }
+  return finalizeDescription(story);
 };
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
@@ -360,7 +374,7 @@ export default function Home() {
     plays.forEach((p, i) => {
       if (!p.title.trim()) items.push(`${i + 1}번 놀이 제목`);
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
-      else if (p.description.trim().length < 55) items.push(`${i + 1}번 놀이 설명 3줄 이상`);
+      else if (p.description.trim().length < 120 || (p.description.match(/[.!?]/g)?.length ?? 0) < 3) items.push(`${i + 1}번 놀이 설명 4줄 이상`);
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
       if (p.isBookPlay && !p.bookCover) items.push(`${i + 1}번 그림책 표지`);
     });
