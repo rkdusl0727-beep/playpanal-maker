@@ -76,8 +76,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
   const details = note.trim().split(/[.\n]+/).map(part => part.trim()).filter(Boolean).map((part, index) => {
     let sentence = part
-      .replace(/^유아들은?\s*/, "아이들은 ")
-      .replace(/^유아가\s*/, "아이가 ")
+      .replace(/^(아이들은?|아이들이|유아들은?|유아들이|어린이들은?|어린이들이|친구들은?|친구들이|아이가|유아가)\s*/, "")
       .replace(/을 가지고/g, "을 들고")
       .replace(/를 가지고/g, "를 활용해")
       .replace(/으로 가서/g, "으로 나가")
@@ -92,8 +91,7 @@ const naturalizeNote = (note: string, playTitle: string) => {
       .replace(/했음$/g, "했어요")
       .replace(/함$/g, "해보았어요")
       .replace(/그림$/g, "그려보았어요");
-    if (index > 0) sentence = sentence.replace(/^(아이들은|유아들은|친구들은|어린이들은)\s*/, "");
-    if (index === 0 && !/^(아이들|아이가|친구들|어린이들)/.test(sentence)) sentence = `아이들은 ${sentence}`;
+    if (index > 0) sentence = sentence.replace(/^(아이들은?|아이들이|유아들은?|유아들이|친구들은?|친구들이|어린이들은?|어린이들이)\s*/, "");
     return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
   });
   let learning = "놀이에 필요한 재료와 방법을 스스로 선택하고 친구와 생각을 나누며 즐겁게 경험을 넓혀보았어요.";
