@@ -286,7 +286,7 @@ export default function Home() {
     });
     slide.addShape(pptx.ShapeType.line, { x: .32, y: 9.15, w: 7.6, h: 0, line: { color: "0C6BA4", width: 2.3 } });
     slide.addText(htmlToPptRuns(learningTitleHtml, "#075f9b"), { x: .32, y: 9.25, w: 3.4, h: .36, fontFace: "CookieRun Black", fontSize: 17, bold: true, margin: 0 });
-    slide.addText(weeklyLearning, { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 8.5, bold: true, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
+    slide.addText(weeklyLearning, { x: .32, y: 9.66, w: 7.6, h: 1.55, fontFace: "Freesentation", fontSize: 10.5, bold: true, color: "172332", margin: 0, valign: "top", breakLine: false, fit: "shrink" });
     await pptx.writeFile({ fileName: `${theme}-놀이패널.pptx` });
   };
 
