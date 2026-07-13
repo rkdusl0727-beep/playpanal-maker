@@ -432,6 +432,10 @@ export default function Home() {
   const [backgroundY, setBackgroundY] = useState(50);
   const [logoImage, setLogoImage] = useState<string | null>("/kindergarten-logo.png");
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const openCanva = () => {
+    window.open("https://www.canva.com/", "_blank", "noopener,noreferrer");
+  };
   const photoDragRef = useRef<{ pi: number; si: number; x: number; y: number; startX: number; startY: number; width: number; height: number } | null>(null);
   const orderDragRef = useRef<{ pi: number; si: number } | null>(null);
 
@@ -726,7 +730,11 @@ export default function Home() {
         <div className="date-row two"><label>시작일<input type="date" value={start} onChange={e=>setStart(e.target.value)} /></label><label>종료일<input type="date" value={end} onChange={e=>setEnd(e.target.value)} /></label></div>
         <div className="background-editor">
           <div className="section-title"><b>패널 배경</b><span>{month}월 · {monthlyBackgrounds[month-1].name}</span></div>
-          <label className="upload background-upload"><span>＋ 배경 이미지 선택</span><input hidden type="file" accept="image/*" onChange={uploadBackground}/></label>
+          <div className="canva-tools">
+            <button type="button" className="canva-open-btn" onClick={openCanva}>Canva에서 요소 만들기</button>
+            <span>캔바에서 만든 배경·장식 이미지를 저장한 뒤 아래에 추가하세요.</span>
+          </div>
+          <label className="upload background-upload canva-drop-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const file=e.dataTransfer.files?.[0];if(file?.type.startsWith("image/")){const reader=new FileReader();reader.onload=()=>setBackgroundImage(String(reader.result));reader.readAsDataURL(file)}}}><span>{backgroundImage?"배경 이미지 변경 · 클릭 또는 드래그":"배경 이미지 선택 · 캔바 이미지를 드래그"}</span><input hidden type="file" accept="image/*" onChange={uploadBackground}/></label>
           {backgroundImage&&<div className="background-focus"><label>좌우 초점<input type="range" min="0" max="100" value={backgroundX} onChange={e=>setBackgroundX(+e.target.value)} /></label><label>상하 초점<input type="range" min="0" max="100" value={backgroundY} onChange={e=>setBackgroundY(+e.target.value)} /></label><button className="text-btn" onClick={()=>applyMonthBackground(month)}>기본 배경으로 되돌리기</button></div>}
         </div>
       </section>
