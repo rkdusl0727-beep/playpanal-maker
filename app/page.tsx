@@ -398,17 +398,17 @@ function RichColorEditor({ html, onChange, label }: { html: string; onChange: (h
     if (selection?.rangeCount && editorRef.current?.contains(selection.anchorNode)) rangeRef.current = selection.getRangeAt(0).cloneRange();
   };
   const emit = () => { const el = editorRef.current; if (el) onChange(el.innerHTML, el.textContent || ""); };
-  const applyColor = () => {
+  const applyColor = (nextColor = color) => {
     const selection = window.getSelection();
     if (rangeRef.current && selection) { selection.removeAllRanges(); selection.addRange(rangeRef.current); }
     document.execCommand("styleWithCSS", false, "true");
-    document.execCommand("foreColor", false, color);
+    document.execCommand("foreColor", false, nextColor);
     editorRef.current?.focus(); rememberSelection(); emit();
   };
   return <div className="rich-editor-wrap">
     <div className="rich-label"><b>{label}</b><span>글자를 드래그한 뒤 색상을 적용하세요</span></div>
     <div ref={editorRef} className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: html }} onInput={emit} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onPaste={e=>{e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain"));emit()}} />
-    <div className="rich-color-tools"><input aria-label={`${label} 선택 색상`} type="color" value={color} onChange={e=>setColor(e.target.value)} /><button type="button" onMouseDown={e=>e.preventDefault()} onClick={applyColor}>선택 글자에 색상 적용</button></div>
+    <div className="rich-color-tools"><input aria-label={`${label} 선택 색상`} type="color" value={color} onMouseDown={rememberSelection} onChange={e=>{setColor(e.target.value);applyColor(e.target.value)}} /><button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>applyColor()}>선택 글자에 색상 적용</button></div>
   </div>;
 }
 
