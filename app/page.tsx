@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type Photo = { src: string; x: number; y: number } | null;
 type PptxConstructor = new () => any;
@@ -400,9 +400,22 @@ function RichColorEditor({ html, onChange, label }: { html: string; onChange: (h
   const emit = () => { const el = editorRef.current; if (el) onChange(el.innerHTML, el.textContent || ""); };
   const applyColor = (nextColor = color) => {
     const selection = window.getSelection();
-    if (rangeRef.current && selection) { selection.removeAllRanges(); selection.addRange(rangeRef.current); }
-    document.execCommand("styleWithCSS", false, "true");
-    document.execCommand("foreColor", false, nextColor);
+    if (rangeRef.current && selection && !rangeRef.current.collapsed) {
+      // Extract and wrap the complete saved range. This handles selections that
+      // cross existing colored spans (execCommand can color only part of them).
+      selection.removeAllRanges();
+      selection.addRange(rangeRef.current);
+      const selected = rangeRef.current.extractContents();
+      const colored = document.createElement("span");
+      colored.style.color = nextColor;
+      colored.appendChild(selected);
+      rangeRef.current.insertNode(colored);
+      const applied = document.createRange();
+      applied.selectNodeContents(colored);
+      selection.removeAllRanges();
+      selection.addRange(applied);
+      rangeRef.current = applied.cloneRange();
+    }
     editorRef.current?.focus(); rememberSelection(); emit();
   };
   return <div className="rich-editor-wrap">
@@ -433,6 +446,42 @@ export default function Home() {
   const [backgroundY, setBackgroundY] = useState(50);
   const [logoImage, setLogoImage] = useState<string | null>("/kindergarten-logo.png");
   const panelRef = useRef<HTMLDivElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Keep the latest work on this browser so a refresh does not reset the panel.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("play-panel-maker-state");
+      if (raw) {
+        const saved = JSON.parse(raw) as Record<string, unknown>;
+        if (typeof saved.title === "string") setTitle(saved.title);
+        if (typeof saved.titleHtml === "string") setTitleHtml(saved.titleHtml);
+        if (typeof saved.theme === "string") setTheme(saved.theme);
+        if (typeof saved.year === "number") setYear(saved.year);
+        if (typeof saved.month === "number") setMonth(saved.month);
+        if (typeof saved.week === "number") setWeek(saved.week);
+        if (typeof saved.start === "string") setStart(saved.start);
+        if (typeof saved.end === "string") setEnd(saved.end);
+        if (Array.isArray(saved.plays)) setPlays(saved.plays as Play[]);
+        if (typeof saved.weeklyLearning === "string") setWeeklyLearning(saved.weeklyLearning);
+        if (typeof saved.learningTitleHtml === "string") setLearningTitleHtml(saved.learningTitleHtml);
+        if (typeof saved.backgroundCss === "string") setBackgroundCss(saved.backgroundCss);
+        if (typeof saved.backgroundColor === "string") setBackgroundColor(saved.backgroundColor);
+        if (typeof saved.backgroundImage === "string" || saved.backgroundImage === null) setBackgroundImage(saved.backgroundImage as string | null);
+        if (typeof saved.backgroundX === "number") setBackgroundX(saved.backgroundX);
+        if (typeof saved.backgroundY === "number") setBackgroundY(saved.backgroundY);
+        if (typeof saved.logoImage === "string" || saved.logoImage === null) setLogoImage(saved.logoImage as string | null);
+      }
+    } catch { /* Ignore malformed or unavailable browser storage. */ }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem("play-panel-maker-state", JSON.stringify({ title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage }));
+    } catch { /* Large images may exceed quota; text and settings still remain in memory. */ }
+  }, [hydrated, title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage]);
 
   const openCanva = () => {
     window.open("https://www.canva.com/", "_blank", "noopener,noreferrer");
