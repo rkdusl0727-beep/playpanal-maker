@@ -574,7 +574,10 @@ export default function Home() {
   const renderPanelDataUrl = async () => {
     const node = panelRef.current; if (!node) return null;
     const clone = node.cloneNode(true) as HTMLElement;
-    clone.style.width = "794px"; clone.style.height = "auto"; clone.style.minHeight = "1123px"; clone.style.margin = "0"; clone.style.transform = "none"; clone.style.overflow = "visible";
+    // Export must use the exact same A4 viewport as the on-screen preview.
+    // Letting the clone grow to its content height changes `background-size: cover`
+    // and makes uploaded backgrounds appear zoomed/cropped in the saved file.
+    clone.style.width = "794px"; clone.style.height = "1123px"; clone.style.minHeight = "1123px"; clone.style.maxHeight = "1123px"; clone.style.margin = "0"; clone.style.transform = "none"; clone.style.overflow = "hidden";
     const originals = [node, ...Array.from(node.querySelectorAll<HTMLElement>("*"))];
     const copies = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>("*"))];
     originals.forEach((original, index) => {
@@ -585,7 +588,7 @@ export default function Home() {
         copy.style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
       }
     });
-    clone.style.height = "auto"; clone.style.minHeight = "1123px"; clone.style.overflow = "visible";
+    clone.style.height = "1123px"; clone.style.minHeight = "1123px"; clone.style.maxHeight = "1123px"; clone.style.overflow = "hidden";
     const cloneImages = Array.from(clone.querySelectorAll<HTMLImageElement>("img"));
     await Promise.all(cloneImages.map(async image => {
       if (!image.getAttribute("src") || image.getAttribute("src")!.startsWith("data:")) return;
@@ -597,7 +600,7 @@ export default function Home() {
     const measureHost = document.createElement("div");
     measureHost.style.cssText = "position:absolute;left:-10000px;top:0;width:794px;visibility:hidden;pointer-events:none;";
     measureHost.appendChild(clone); document.body.appendChild(measureHost);
-    const renderHeight = Math.max(1123, clone.scrollHeight);
+    const renderHeight = 1123;
     measureHost.remove();
     const stylesheetText = Array.from(document.styleSheets).flatMap(sheet => {
       try { return Array.from(sheet.cssRules).map(rule => rule.cssText); } catch { return []; }
@@ -763,7 +766,7 @@ export default function Home() {
 
     <section className="preview-area">
       <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button onClick={()=>window.print()}>PDF 저장</button><button onClick={exportPpt}>PPT 저장</button><button className="primary" onClick={exportPng}>이미지 저장</button></div></div>
-      <article className="panel" ref={panelRef} style={{background:backgroundImage?`url(${backgroundImage})`:backgroundCss,backgroundSize:"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
+      <article className="panel" ref={panelRef} style={{background:backgroundImage?`${backgroundColor} url(${backgroundImage}) no-repeat`:backgroundCss,backgroundSize:backgroundImage?"contain":"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
         <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=>{ const visibleTitle = p.publishedTitle || p.title; const visibleDescription = p.publishedDescription || p.description; return <section className={`play-card card-${i} ${p.isBookPlay?"has-book-card":""}`} key={p.id}>
           <div className={`photo-grid photos-${p.photoCount}`}>{p.photos.slice(0,p.photoCount).map((ph,j)=><div className="photo-slot" key={j}>{ph?<img src={ph.src} alt={`${visibleTitle} ${j+1}`} draggable={false} onPointerDown={e=>startPhotoDrag(e,i,j,ph)} onPointerMove={dragPhoto} onPointerUp={endPhotoDrag} onPointerCancel={endPhotoDrag} style={{objectPosition:`${ph.x}% ${ph.y}%`}}/>:<span>{j+1}</span>}</div>)}</div>
