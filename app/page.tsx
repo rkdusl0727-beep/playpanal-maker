@@ -3,6 +3,7 @@
 import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useMemo, useRef, useState } from "react";
 
 type Photo = { src: string; x: number; y: number } | null;
+type PptxConstructor = new () => any;
 type Play = {
   id: number;
   title: string;
@@ -629,7 +630,8 @@ export default function Home() {
   };
 
   const exportPpt = async () => {
-    const { default: PptxGenJS } = await import("pptxgenjs");
+    const PptxGenJS = (window as unknown as { PptxGenJS?: PptxConstructor }).PptxGenJS;
+    if (!PptxGenJS) { window.alert("PPT 저장 모듈을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요."); return; }
     const panelDataUrl = await renderPanelDataUrl(); if (!panelDataUrl) return;
     const pptx = new PptxGenJS();
     pptx.defineLayout({ name: "A4_PORTRAIT", width: 8.267, height: 11.693 });
@@ -674,9 +676,10 @@ export default function Home() {
       for (const [j, ph] of p.photos.slice(0, p.photoCount).entries()) {
         const x = photoX + (j % columns) * (cellW + gap);
         const y = photoY + Math.floor(j / columns) * (cellH + gap);
-        if (ph) {
-          const fitted = await containedImageRect(ph.src, x, y, cellW, cellH);
-          slide.addImage({ data: ph.src, ...fitted });
+        const photoSrc = ph?.src;
+        if (typeof photoSrc === "string") {
+          const fitted = await containedImageRect(photoSrc as string, x, y, cellW, cellH);
+          slide.addImage({ data: photoSrc as string, ...fitted });
         }
         else {
           slide.addShape(pptx.ShapeType.rect, { x, y, w: cellW, h: cellH, fill: { color: "FFFFFF", transparency: 38 }, line: { color: "FFFFFF", transparency: 100 } });
@@ -691,9 +694,10 @@ export default function Home() {
         : p.publishedTitle;
       slide.addText(pptTitle, { x: textX, y: textY, w: textW, h: .26, fontFace: "Freesentation", fontSize: wide ? 12 : 10.5, bold: true, align: "center", color: "172332", margin: 0, breakLine: false });
       const coverW = wide ? .72 : .62;
-      if (p.isBookPlay && p.bookCover) {
-        const coverRect = await containedImageRect(p.bookCover.src, textX, textY + .31, coverW, wide ? 1.02 : .92);
-        slide.addImage({ data: p.bookCover.src, ...coverRect });
+      const safeCoverSrc = ((p.bookCover as { src?: string } | null)?.src ?? "") as string;
+      if (p.isBookPlay && safeCoverSrc.length > 0) {
+        const coverRect = await containedImageRect(safeCoverSrc, textX, textY + .31, coverW, wide ? 1.02 : .92);
+        slide.addImage({ data: safeCoverSrc, ...coverRect });
       }
       const descX = p.isBookPlay ? textX + coverW + .08 : textX;
       const descW = p.isBookPlay ? textW - coverW - .08 : textW;

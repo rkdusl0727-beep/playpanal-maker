@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body>{children}</body></html>;
+  return <html lang="ko"><body>{children}<script src="/vendor/pptxgen.bundle.js" defer /></body></html>;
 }
