@@ -56,3 +56,7 @@ footer p{font-size:16px!important;line-height:1.5}
 .book-copy h4{margin-bottom:6px}.book-copy-body{position:relative;z-index:0}.book-copy h4{position:relative;z-index:1}
 .expansion-badge{display:inline-block;margin-right:7px;padding:2px 7px;border-radius:999px;background:#fff0e8;color:#c94f1d;font-family:"Freesentation",sans-serif;font-size:.72em;font-weight:800;vertical-align:.1em}
 .canva-tools{display:grid;gap:5px;padding:11px 12px;border:1px solid #d6c8f3;border-radius:9px;background:#faf8ff}.canva-tools span{font-size:10px;color:#756b8d;line-height:1.35}.canva-open-btn{justify-self:start;border:0;border-radius:7px;padding:9px 12px;background:#7d3cff;color:#fff;font-weight:800;font-size:12px;cursor:pointer}.canva-open-btn:hover{background:#6828e8}.canva-drop-zone{height:54px;border-width:2px;border-style:dashed;background:#f7fcff}.canva-drop-zone:hover{background:#eef7ff;border-color:#7d3cff}
+
+/* Keep the editor in the document flow so long forms are never clipped inside a
+   fixed-height pane; the browser/page scrollbar can reveal the entire form. */
+.editor{height:auto;min-height:100vh;overflow:visible}
