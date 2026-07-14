@@ -35,4 +35,7 @@ test("includes durable persistence and calendar logic", async () => {
   assert.match(page, /function weekRange/);
   assert.match(page, /firstMonday/);
   assert.match(page, /removeTitleLead/);
+  assert.match(page, /p\.photoCount === 4 \? 2/);
+  assert.match(page, /<option value=\{4\}>4장<\/option>/);
+  assert.match(page, /<option value=\{8\}>8장<\/option>/);
 });
