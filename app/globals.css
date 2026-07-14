@@ -60,3 +60,5 @@ footer p{font-size:16px!important;line-height:1.5}
 /* Keep the editor in the document flow so long forms are never clipped inside a
    fixed-height pane; the browser/page scrollbar can reveal the entire form. */
 .editor{height:auto;min-height:100vh;overflow:visible}
+.preview-area{position:sticky;top:0;height:100vh;align-self:start}
+@media(max-width:1050px){.preview-area{position:static;height:auto}}

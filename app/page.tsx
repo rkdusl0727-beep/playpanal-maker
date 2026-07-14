@@ -479,10 +479,29 @@ export default function Home() {
 
   // Keep the latest work on this browser so a refresh does not reset the panel.
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem("play-panel-maker-state");
-      if (raw) {
-        const saved = JSON.parse(raw) as Record<string, unknown>;
+    const load = async () => {
+      let saved: Record<string, unknown> | null = null;
+      try {
+        saved = await new Promise<Record<string, unknown> | null>((resolve) => {
+          const request = window.indexedDB?.open("play-panel-maker", 1);
+          if (!request) return resolve(null);
+          request.onupgradeneeded = () => request.result.createObjectStore("state");
+          request.onsuccess = () => {
+            const tx = request.result.transaction("state", "readonly");
+            const get = tx.objectStore("state").get("latest");
+            get.onsuccess = () => resolve((get.result as Record<string, unknown> | undefined) || null);
+            get.onerror = () => resolve(null);
+          };
+          request.onerror = () => resolve(null);
+        });
+      } catch { saved = null; }
+      if (!saved) {
+        try {
+          const raw = window.localStorage.getItem("play-panel-maker-state");
+          if (raw) saved = JSON.parse(raw) as Record<string, unknown>;
+        } catch { saved = null; }
+      }
+      if (saved) {
         if (typeof saved.title === "string") setTitle(saved.title);
         if (typeof saved.titleHtml === "string") setTitleHtml(saved.titleHtml);
         if (typeof saved.theme === "string") setTheme(saved.theme);
@@ -501,15 +520,25 @@ export default function Home() {
         if (typeof saved.backgroundY === "number") setBackgroundY(saved.backgroundY);
         if (typeof saved.logoImage === "string" || saved.logoImage === null) setLogoImage(saved.logoImage as string | null);
       }
-    } catch { /* Ignore malformed or unavailable browser storage. */ }
-    setHydrated(true);
+      setHydrated(true);
+    };
+    void load();
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
+    const state = { title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage };
+    try { window.localStorage.setItem("play-panel-maker-state", JSON.stringify(state)); } catch { /* IndexedDB below can hold larger image data. */ }
     try {
-      window.localStorage.setItem("play-panel-maker-state", JSON.stringify({ title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage }));
-    } catch { /* Large images may exceed quota; text and settings still remain in memory. */ }
+      const request = window.indexedDB?.open("play-panel-maker", 1);
+      if (request) {
+        request.onupgradeneeded = () => request.result.createObjectStore("state");
+        request.onsuccess = () => {
+          const db = request.result;
+          db.transaction("state", "readwrite").objectStore("state").put(state, "latest");
+        };
+      }
+    } catch { /* Keep the in-memory state if browser storage is unavailable. */ }
   }, [hydrated, title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage]);
 
   const openCanva = () => {
