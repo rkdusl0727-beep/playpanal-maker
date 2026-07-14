@@ -59,9 +59,11 @@ const makePlay = (i: number): Play => ({
 
 function weekRange(year: number, month: number, week: number) {
   const first = new Date(year, month - 1, 1);
+  // A month's first week starts on the Monday on or before the 1st.
+  // For example, July 2026 week 1 is Jun 29–Jul 3 and week 5 is Jul 27–31.
   const firstMonday = new Date(first);
   const day = first.getDay();
-  firstMonday.setDate(1 + ((8 - (day || 7)) % 7) + (week - 1) * 7);
+  firstMonday.setDate(1 - ((day + 6) % 7) + (week - 1) * 7);
   const end = new Date(firstMonday);
   end.setDate(end.getDate() + 4);
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -320,6 +322,20 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (/블록|쌓|구성|만들/.test(source)) return "생각을 모아 만든 우리 세상";
   if (/그림|색|미술|꾸미|표현/.test(source)) return "색과 선으로 펼친 우리 생각";
   if (/물놀이|바다|파도|물고기/.test(source)) return "물과 함께 발견한 여름 이야기";
+  const compact = note
+    .replace(/^\s*(확장활동\s*[:：]?\s*)?/, "")
+    .replace(/(해봄|했음|함|있음|나타남|살펴봄|관찰함|표현함)\s*$/, "")
+    .replace(/[.!?。]+.*$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (compact) {
+    const nouns = compact
+      .replace(/아이들은?|유아들은?|친구들과?|함께/g, "")
+      .replace(/(으로|에서|하며|하고|하여|위해|통해)\s*/g, " ")
+      .trim();
+    if (nouns.length <= 24) return nouns;
+    return `${nouns.slice(0, 22).trim()} 이야기`;
+  }
   return "놀이 속에서 발견한 새로운 생각";
 };
 
