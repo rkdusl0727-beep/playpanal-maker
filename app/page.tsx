@@ -137,6 +137,13 @@ const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = fa
   return text;
 };
 
+const removeTitleLead = (description: string, title: string) => {
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return description;
+  const escaped = cleanTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return description.replace(new RegExp(`^\\s*${escaped}\\s*[,.:·-]?\\s*`, "i"), "").trim();
+};
+
 const naturalizeNote = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
   if (/모자이크/.test(context) && /(모빌|교실\s*천장)/.test(context) && /(빗방울|물방울)/.test(context) && /색종이/.test(context)) {
@@ -255,7 +262,13 @@ const naturalizeNote = (note: string, playTitle: string) => {
   });
   let story = finalizeDescription(varied.join(" "));
   const hasPeerPlay = /친구|짝|함께|협동/.test(context);
-  const closing = hasPeerPlay ? "서로의 표현을 살펴보며 느낀 점을 자연스럽게 나누어보았어요." : "놀이를 이어가며 새롭게 발견한 점을 이야기해보았어요.";
+  const closing = /클레이|아이스크림|모양|색/.test(context)
+    ? "완성한 모양을 서로 살펴보며 재료의 느낌과 생각을 자연스럽게 나누어보았어요."
+    : /비|빗방울|물웅덩이|우산/.test(context)
+      ? "비 오는 날의 모습을 다시 떠올리며 관찰한 장면과 느낌을 이야기해보았어요."
+      : /소리|말|낱말|어휘|글자/.test(context)
+        ? "놀이에서 발견한 소리와 말을 서로 들려주며 표현의 즐거움을 나누어보았어요."
+        : hasPeerPlay ? "서로의 표현을 살펴보며 느낀 점을 자연스럽게 나누어보았어요." : "놀이를 이어가며 새롭게 발견한 점을 이야기해보았어요.";
   if (story.length < 105 || (story.match(/[.!?]/g)?.length ?? 0) < 2) story = `${story} ${closing}`;
   if (/확장활동/.test(context) && !/확장되고 있답니다/.test(story)) {
     story = story.replace(/(?:해보았어요|했어요|했답니다|느꼈어요|나누었어요)\.$/, "하며 앞선 놀이의 관심이 새로운 놀이로 자연스럽게 확장되고 있답니다.");
@@ -420,7 +433,7 @@ function RichColorEditor({ html, onChange, label }: { html: string; onChange: (h
   };
   return <div className="rich-editor-wrap">
     <div className="rich-label"><b>{label}</b><span>글자를 드래그한 뒤 색상을 적용하세요</span></div>
-    <div ref={editorRef} className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: html }} onInput={emit} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onPaste={e=>{e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain"));emit()}} />
+    <div ref={editorRef} className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: html }} onInput={emit} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onPaste={e=>{e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain"));emit()}} />
     <div className="rich-color-tools"><input aria-label={`${label} 선택 색상`} type="color" value={color} onMouseDown={rememberSelection} onChange={e=>{setColor(e.target.value);applyColor(e.target.value)}} /><button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>applyColor()}>선택 글자에 색상 적용</button></div>
   </div>;
 }
@@ -501,12 +514,12 @@ export default function Home() {
     setPlays(current => current.map((p, i) => {
       if (i !== idx) return p;
       const generatedTitle = makeNewspaperTitle(note, "", p.isBookPlay);
-      const generatedDescription = fitDescriptionToSixLines(preserveMemoCore(note, naturalizeNote(note, generatedTitle)), p.isBookPlay, idx === 4);
+      const generatedDescription = fitDescriptionToSixLines(removeTitleLead(preserveMemoCore(note, naturalizeNote(note, generatedTitle)), generatedTitle), p.isBookPlay, idx === 4);
       return { ...p, note, title: generatedTitle, description: generatedDescription, approved: false };
     }));
   };
   const publishDraft = (idx: number, title: string, description: string) => {
-    const completedDescription = fitDescriptionToSixLines(description, plays[idx].isBookPlay, idx === 4);
+    const completedDescription = fitDescriptionToSixLines(removeTitleLead(description, title), plays[idx].isBookPlay, idx === 4);
     const next = plays.map((play, i) => i === idx ? { ...play, title, description: completedDescription, publishedTitle: title, publishedDescription: completedDescription, approved: true } : play);
     setPlays(next);
     if (next.every(play => play.approved)) setWeeklyLearning(makeWeeklyLearning(next, theme));
@@ -814,7 +827,7 @@ export default function Home() {
     </aside>
 
     <section className="preview-area">
-      <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button onClick={()=>window.print()}>PDF 저장</button><button onClick={exportPpt}>PPT 저장</button><button className="primary" onClick={exportPng}>이미지 저장</button></div></div>
+      <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button type="button" disabled={false} onClick={()=>window.print()}>PDF 저장</button><button type="button" disabled={false} onClick={exportPpt}>PPT 저장</button><button type="button" className="primary" disabled={false} onClick={exportPng}>이미지 저장</button></div></div>
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`${backgroundColor} url(${backgroundImage}) no-repeat`:backgroundCss,backgroundSize:backgroundImage?"contain":"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
         <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=>{ const visibleTitle = p.publishedTitle || p.title; const visibleDescription = p.publishedDescription || p.description; return <section className={`play-card card-${i} ${p.isBookPlay?"has-book-card":""}`} key={p.id}>
