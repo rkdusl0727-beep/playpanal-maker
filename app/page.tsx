@@ -476,10 +476,18 @@ export default function Home() {
   const [logoImage, setLogoImage] = useState<string | null>("/kindergarten-logo.png");
   const panelRef = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState("default");
+  const [shareMessage, setShareMessage] = useState("");
+  const storageKeyRef = useRef("play-panel-maker-state-default");
 
-  // Keep the latest work on this browser so a refresh does not reset the panel.
+  // Keep each shared workspace separate on this browser so a refresh does not reset it.
   useEffect(() => {
     const load = async () => {
+      const queryWorkspaceId = new URLSearchParams(window.location.search).get("w");
+      const loadedWorkspaceId = queryWorkspaceId?.match(/^[A-Za-z0-9_-]{6,80}$/)?.[0] || "default";
+      setWorkspaceId(loadedWorkspaceId);
+      storageKeyRef.current = `play-panel-maker-state-${loadedWorkspaceId}`;
+      const dbKey = `state-${loadedWorkspaceId}`;
       let saved: Record<string, unknown> | null = null;
       try {
         saved = await new Promise<Record<string, unknown> | null>((resolve) => {
@@ -488,8 +496,14 @@ export default function Home() {
           request.onupgradeneeded = () => request.result.createObjectStore("state");
           request.onsuccess = () => {
             const tx = request.result.transaction("state", "readonly");
-            const get = tx.objectStore("state").get("latest");
-            get.onsuccess = () => resolve((get.result as Record<string, unknown> | undefined) || null);
+            const get = tx.objectStore("state").get(dbKey);
+            get.onsuccess = () => {
+              const value = (get.result as Record<string, unknown> | undefined) || null;
+              if (value || loadedWorkspaceId === "default") return resolve(value);
+              const legacy = tx.objectStore("state").get("latest");
+              legacy.onsuccess = () => resolve((legacy.result as Record<string, unknown> | undefined) || null);
+              legacy.onerror = () => resolve(null);
+            };
             get.onerror = () => resolve(null);
           };
           request.onerror = () => resolve(null);
@@ -497,8 +511,12 @@ export default function Home() {
       } catch { saved = null; }
       if (!saved) {
         try {
-          const raw = window.localStorage.getItem("play-panel-maker-state");
+          const raw = window.localStorage.getItem(storageKeyRef.current);
           if (raw) saved = JSON.parse(raw) as Record<string, unknown>;
+          if (!saved && loadedWorkspaceId !== "default") {
+            const legacy = window.localStorage.getItem("play-panel-maker-state");
+            if (legacy) saved = JSON.parse(legacy) as Record<string, unknown>;
+          }
         } catch { saved = null; }
       }
       if (saved) {
@@ -528,18 +546,37 @@ export default function Home() {
   useEffect(() => {
     if (!hydrated) return;
     const state = { title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage };
-    try { window.localStorage.setItem("play-panel-maker-state", JSON.stringify(state)); } catch { /* IndexedDB below can hold larger image data. */ }
+    try { window.localStorage.setItem(storageKeyRef.current, JSON.stringify(state)); } catch { /* IndexedDB below can hold larger image data. */ }
     try {
       const request = window.indexedDB?.open("play-panel-maker", 1);
       if (request) {
         request.onupgradeneeded = () => request.result.createObjectStore("state");
         request.onsuccess = () => {
           const db = request.result;
-          db.transaction("state", "readwrite").objectStore("state").put(state, "latest");
+          db.transaction("state", "readwrite").objectStore("state").put(state, `state-${storageKeyRef.current.replace("play-panel-maker-state-", "")}`);
         };
       }
     } catch { /* Keep the in-memory state if browser storage is unavailable. */ }
-  }, [hydrated, title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage]);
+  }, [hydrated, workspaceId, title, titleHtml, theme, year, month, week, start, end, plays, weeklyLearning, learningTitleHtml, backgroundCss, backgroundColor, backgroundImage, backgroundX, backgroundY, logoImage]);
+
+  const copyShareLink = async () => {
+    const randomId = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().replace(/-/g, "").slice(0, 16)
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set("w", randomId);
+    nextUrl.hash = `edit-${plays[0]?.id || ""}`;
+    window.history.replaceState(null, "", nextUrl.toString());
+    storageKeyRef.current = `play-panel-maker-state-${randomId}`;
+    setWorkspaceId(randomId);
+    const link = nextUrl.toString();
+    try { await navigator.clipboard.writeText(link); }
+    catch {
+      const input = document.createElement("input"); input.value = link; document.body.appendChild(input); input.select(); document.execCommand("copy"); input.remove();
+    }
+    setShareMessage("공유 링크가 복사되었습니다");
+    window.setTimeout(() => setShareMessage(""), 2400);
+  };
 
   const openCanva = () => {
     window.open("https://www.canva.com/", "_blank", "noopener,noreferrer");
@@ -872,7 +909,7 @@ export default function Home() {
     </aside>
 
     <section className="preview-area">
-      <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span></div><div><button type="button" disabled={false} onClick={()=>window.print()}>PDF 저장</button><button type="button" disabled={false} onClick={exportPpt}>PPT 저장</button><button type="button" className="primary" disabled={false} onClick={exportPng}>이미지 저장</button></div></div>
+      <div className="toolbar no-print"><div><strong>A4 세로 미리보기</strong><span>{missing.length?` · ${missing.length}개 확인 필요`:" · 출력 준비 완료"}</span>{shareMessage&&<em className="share-message"> · {shareMessage}</em>}</div><div><button type="button" onClick={copyShareLink}>공유 링크 복사</button><button type="button" disabled={false} onClick={()=>window.print()}>PDF 저장</button><button type="button" disabled={false} onClick={exportPpt}>PPT 저장</button><button type="button" className="primary" disabled={false} onClick={exportPng}>이미지 저장</button></div></div>
       <article className="panel" ref={panelRef} style={{background:backgroundImage?`${backgroundColor} url(${backgroundImage}) no-repeat`:backgroundCss,backgroundSize:backgroundImage?"contain":"cover",backgroundPosition:`${backgroundX}% ${backgroundY}%`}}>
         <header className="panel-header"><div><h2 dangerouslySetInnerHTML={{__html:titleHtml}}/><h3>{theme}</h3></div><p>놀이기간: {month}월 {week}주({pretty(start)} ~ {pretty(end)})</p></header>
         <div className="panel-grid">{plays.map((p,i)=>{ const visibleTitle = p.publishedTitle || p.title; const visibleDescription = p.publishedDescription || p.description; return <section className={`play-card card-${i} ${p.isBookPlay?"has-book-card":""}`} key={p.id}>
