@@ -297,26 +297,26 @@ const naturalizeNoteBase = (note: string, playTitle: string) => {
   return finalizeDescription(story);
 };
 
-// 놀이 장면을 충분히 서술한 뒤, 메모에서 확인되는 핵심 경험에 맞는
-// 누리과정 해석을 마지막 한 문장으로만 자연스럽게 연결한다.
-const curriculumInterpretation = (note: string) => {
+// 마지막 문장은 배움을 설명하거나 평가하지 않고, 메모에서 확인되는
+// 놀이 장면이 어떻게 이어졌는지를 부모가 그려 볼 수 있게 마무리한다.
+const playClosingSentence = (note: string) => {
   const context = note;
   if (/소리|말로|낱말|어휘|글자|읽고|읽어|써봄|써\s*봄|말로\s*나타/.test(context)) {
-    return "소리와 낱말을 연결하고 생각을 말과 글로 표현하는 즐거움을 이어 갈 수 있었어요.";
+    return "소리와 낱말을 하나둘 연결하며 떠오른 생각을 말과 글로 담아 가는 놀이가 이어졌답니다.";
   }
   if (/실험|변화|관찰|색소|구름|비가|섞어|번짐|자연|식물|꽃|나뭇잎|곤충|씨앗/.test(context)) {
-    return "재료와 자연 현상의 변화를 살펴보고 원인과 결과를 차근차근 탐색할 수 있었어요.";
+    return "눈앞에서 달라지는 모습을 차근차근 살펴보며 궁금한 장면을 따라 놀이를 이어 갈 수 있었어요.";
   }
   if (/달리|뛰|점프|균형|기어|움직임|몸짓|물총|물놀이|신체/.test(context)) {
-    return "몸의 움직임을 조절하고 공간을 안전하게 사용하며 신체 놀이를 즐겨 보았어요.";
+    return "몸의 움직임과 거리를 스스로 조절하며 친구들과 안전하게 놀이를 이어 나갔습니다.";
   }
   if (/친구|짝|함께|협동|나누|서로|공동/.test(context)) {
-    return "친구와 생각을 나누고 함께 방법을 조율하며 또래 협력 경험을 넓혀 나갔습니다.";
+    return "서로의 놀이를 살펴보고 방법을 나누며 저마다의 생각을 담은 놀이가 이어졌답니다.";
   }
   if (/미술|그림|색|물감|분필|클레이|색종이|모자이크|모빌|꾸미|표현|만들/.test(context)) {
-    return "재료의 특성을 살피고 손으로 모양을 구성하며 생각을 표현하는 즐거움을 이어 갈 수 있었어요.";
+    return "손끝으로 모양을 만들어 가며 저마다의 생각을 담아 표현하는 즐거움을 느껴 볼 수 있었어요.";
   }
-  return "놀이 속에서 발견한 생각과 느낌을 각자의 방법으로 표현하며 배움을 넓혀 나갔습니다.";
+  return "놀이에서 발견한 모습을 차근차근 살펴보며 저마다의 방법으로 놀이를 이어 갈 수 있었어요.";
 };
 
 const formalizePanelSentence = (sentence: string) => sentence
@@ -347,18 +347,21 @@ const observationSentence = (sentence: string, note: string) => {
     .replace(/탐색했답니다$/g, "변화를 자세히 탐색하는 모습이 보였답니다");
   if (/모습이 보였답니다$/.test(converted)) return `${converted}.`;
   if (/친구|함께|짝|협동/.test(note)) return `${formalizePanelSentence(body)}, 친구와 생각을 주고받으며 놀이를 이어 가는 모습이 보였답니다.`;
-  return `${formalizePanelSentence(body)}, 재료와 방법을 스스로 선택해 표현하는 모습이 보였답니다.`;
+  if (/관찰|실험|변화|살펴/.test(note)) return `${formalizePanelSentence(body)}, 눈앞의 변화를 차근차근 살펴보는 모습이 보였답니다.`;
+  if (/꾸미|장식|색칠|그리|붙이|접기|오리/.test(note)) return `${formalizePanelSentence(body)}, 색과 모양을 차근차근 더해 가는 모습이 보였답니다.`;
+  if (/만들|쌓기|구성|연결/.test(note)) return `${formalizePanelSentence(body)}, 모양을 하나둘 완성해 가는 모습이 보였답니다.`;
+  return `${formalizePanelSentence(body)}, 놀이의 흐름을 차근차근 이어 가는 모습이 보였답니다.`;
 };
 
 const toPanelDescription = (note: string, story: string) => {
   if (/클레이/.test(note) && /아이스크림/.test(note) && /휴지심/.test(note) && /아이스바/.test(note)) {
-    return "아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 장식과 무늬를 더하며 저마다의 여름 디저트를 완성했답니다. 재료의 특성을 살피고 손으로 모양을 구성하며 생각을 표현하는 즐거움을 이어 갈 수 있었어요.";
+    return "아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 장식과 무늬를 더하며 저마다의 여름 디저트를 완성했답니다. 손끝으로 모양을 만들어 가며 각자의 생각을 담아 표현하는 즐거움을 느껴 볼 수 있었어요.";
   }
   const sentences = dedupeSentences(story).split(/(?<=[.!?])\s+/).filter(Boolean);
   const first = `${formalizePanelSentence(sentences[0] || note)}.`;
   const secondSource = sentences[1] || sentences[0] || note;
   const second = observationSentence(secondSource, note);
-  const third = curriculumInterpretation(note);
+  const third = playClosingSentence(note);
   return dedupeSentences(`${first} ${second} ${third}`);
 };
 
@@ -368,19 +371,23 @@ const panelDescriptionIssues = (value: string) => {
   const issues: string[] = [];
   if (sentences.length !== 3) issues.push("정확히 3문장이어야 합니다");
   if (text.length < 150 || text.length > 180) issues.push("150~180자로 작성해 주세요");
-  const endings = sentences.map(sentence => sentence.match(/(?:보았습니다|모습을 보였습니다|모습이 보였답니다|이어 나갔습니다|넓혀 나갔습니다|보았어요|했답니다|할 수 있었어요|보였어요|볼 수 있었어요|나타났어요|완성했어요|즐겨 보았어요|꾸며 보았어요|담아 보았어요)\.$/)?.[0] || "");
+  const endings = sentences.map(sentence => sentence.match(/(?:보았습니다|모습을 보였습니다|모습이 보였답니다|이어 나갔습니다|이어졌답니다|넓혀 나갔습니다|보았어요|했답니다|수 있었어요|보였어요|나타났어요|완성했어요|즐겨 보았어요|꾸며 보았어요|담아 보았어요)\.$/)?.[0] || "");
   if (endings.filter(Boolean).length !== sentences.length) issues.push("부드러운 부모 공개용 종결 표현을 사용해 주세요");
   if (new Set(endings).size !== endings.length) issues.push("같은 종결 표현을 반복할 수 없습니다");
   const varietyCount = text.match(/다양한|다채로운|여러 가지/g)?.length ?? 0;
   if (varietyCount > 1) issues.push("'다양한·다채로운·여러 가지'는 1회 이하로 사용해 주세요");
   if (/교육적 효과|학습 목표|발달시켰다/.test(text)) issues.push("딱딱한 교육 용어는 사용할 수 없습니다");
+  if (/재료의 특성을 탐색하며|상상력과 표현력을 넓혀 나갔습니다|자신만의 .{0,20} 표현했습니다/.test(text)) issues.push("반복적인 AI 문구 대신 실제 놀이 장면을 작성해 주세요");
   if (/(?:해봄|해보았음|볼\s*수\s*있었음|나타남|관찰함|표현함|놀이함|했음|있음|함)(?:[.!?]|$)/.test(text)) issues.push("메모체 종결은 사용할 수 없습니다");
   return issues;
 };
 
 const panelTitleIssues = (value: string) => {
-  const length = value.trim().replace(/\s+/g, " ").length;
-  return length >= 8 && length <= 16 ? [] : ["제목은 8~16자로 작성해 주세요"];
+  const title = value.trim().replace(/\s+/g, " ");
+  const issues: string[] = [];
+  if (title.length < 8 || title.length > 16) issues.push("제목은 8~16자로 작성해 주세요");
+  if (/색과 선으로 펼친 우리 생각|생각을 담다|즐거운 표현|상상의 세계|창의력을 키워요|생각을 모아 만든 우리 세상/.test(title)) issues.push("재료·계절·놀이 결과가 보이는 제목으로 작성해 주세요");
+  return issues;
 };
 
 const preserveMemoCore = (note: string, story: string) => {
@@ -405,7 +412,8 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (/(구름|비가\s*되는|쉐이빙폼|색소|수조)/.test(source)) return "쉐이빙폼 구름에서 내리는 색소 비";
   if (/(스프레이건|물총|물놀이)/.test(source) && /페트병/.test(source)) return "페트병으로 만든 우리 물총놀이";
   if (/실험활동|실험|가설|변화|녹아|섞어/.test(source)) return "재료의 변화를 발견하는 실험놀이";
-  if (/자연탐구|식물|꽃|나뭇잎|곤충|생태|씨앗/.test(source)) return "자연에서 발견한 작은 변화";
+  if (/꽃|나뭇잎|꽃잎/.test(source)) return "꽃과 나뭇잎을 만나요";
+  if (/곤충|생태|씨앗|식물|자연탐구/.test(source)) return "자연을 살펴보는 탐구 놀이";
   if (/신체놀이|신체활동|달리|뛰|점프|균형|기어|움직임/.test(source)) return "몸의 움직임으로 펼친 신체놀이";
   if (/블록|놀잇감/.test(source) && /여름소리|여름 소리/.test(source)) return "블록과 놀잇감으로 만든 여름 소리";
   if (/빨대|불어/.test(source) && /물감/.test(source)) return "후후 불어 피어난 물감 그림";
@@ -424,9 +432,9 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (/물감/.test(source) && /빨대|불어/.test(source)) return "바람으로 피어난 물감 그림";
   if (/비|빗방울|수채|번짐/.test(source)) return "물감으로 만난 비 오는 날";
   if (/소리|악기|노래|리듬/.test(source)) return "우리 주변에서 찾은 소리";
-  if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연에서 발견한 새로운 모습";
-  if (/블록|쌓기|쌓아|구성/.test(source)) return "생각을 모아 만든 우리 세상";
-  if (/그림|색|미술|꾸미|표현/.test(source)) return "색과 선으로 펼친 우리 생각";
+  if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연물로 이어진 놀이";
+  if (/블록|쌓기|쌓아|구성/.test(source)) return "블록으로 만든 놀이 공간";
+  if (/그림|색|미술|꾸미|표현/.test(source)) return "알록달록 꾸미기 놀이";
   if (/물놀이|바다|파도|물고기/.test(source)) return "물과 함께 발견한 여름 이야기";
   const compact = note
     .replace(/^\s*(확장활동\s*[:：]?\s*)?/, "")
@@ -442,7 +450,7 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
     if (nouns.length <= 24) return nouns;
     return `${nouns.slice(0, 22).trim()} 이야기`;
   }
-  return "놀이 속에서 발견한 새로운 생각";
+  return "오늘 함께한 놀이 이야기";
 };
 
 const withAnd = (word: string) => {

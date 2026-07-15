@@ -45,9 +45,17 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(page, /text\.length < 150 \|\| text\.length > 180/);
   assert.match(page, /sentences\.length !== 3/);
   assert.match(page, /panelTitleIssues/);
-  assert.match(page, /length >= 8 && length <= 16/);
+  assert.match(page, /title\.length < 8 \|\| title\.length > 16/);
   assert.match(page, /같은 종결 표현을 반복할 수 없습니다/);
   assert.match(page, /교육적 효과\|학습 목표\|발달시켰다/);
   assert.match(page, /달콤한 여름 디저트/);
   assert.match(page, /아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고/);
+  assert.match(page, /손끝으로 모양을 만들어 가며 각자의 생각을 담아 표현하는 즐거움/);
+  assert.match(page, /블록으로 만든 놀이 공간/);
+  assert.match(page, /알록달록 꾸미기 놀이/);
+  assert.match(page, /재료·계절·놀이 결과가 보이는 제목/);
+  assert.match(page, /반복적인 AI 문구 대신 실제 놀이 장면/);
+  assert.doesNotMatch(page, /return "색과 선으로 펼친 우리 생각"/);
+  assert.doesNotMatch(page, /return "생각을 모아 만든 우리 세상"/);
+  assert.doesNotMatch(page, /재료와 방법을 스스로 선택해 표현하는 모습/);
 });
