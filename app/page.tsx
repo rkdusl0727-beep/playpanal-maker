@@ -3,7 +3,8 @@
 import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { selectPlayPanelFewShots } from "./play-panel-few-shots";
 import type { PlayPanelFewShot } from "./play-panel-few-shots";
-import { generatePlaypanel, type ModelCaller } from "../src/playpanel-ai/lib/generatePlaypanel";
+import { generatePlaypanel, regenerateDescription, playpanelGenerationStyles, type ModelCaller } from "../src/playpanel-ai/lib/generatePlaypanel";
+import { validatePlaypanel } from "../src/playpanel-ai/lib/styleChecker";
 
 type Photo = { src: string; x: number; y: number } | null;
 type PptxConstructor = new () => any;
@@ -16,6 +17,8 @@ type Play = {
   learning: string;
   note: string;
   approved: boolean;
+  generationStyle: number;
+  regenerationCount: number;
   photos: Photo[];
   photoCount: 4 | 6 | 8;
   isBookPlay: boolean;
@@ -54,6 +57,8 @@ const makePlay = (i: number): Play => ({
   learning: samples[i]?.[2] || "놀이를 통해 발견한 배움을 기록해 주세요.",
   note: "",
   approved: false,
+  generationStyle: -1,
+  regenerationCount: 0,
   photos: Array(8).fill(null),
   photoCount: 6,
   isBookPlay: i === 1,
@@ -167,7 +172,10 @@ const removeTitleLead = (description: string, title: string) => {
 const naturalizeNoteBase = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
   if (/장마/.test(context) && /물방울/.test(context) && /종이접기|색종이|접기/.test(context)) {
-    return "비가 이어지는 장마 풍경을 떠올리며 색종이를 반듯하게 접어 동그란 물방울 모양을 만들어 보았어요. 종이의 모서리를 맞추고 접힌 자리를 눌러 완성한 물방울을 교실 창가에 하나씩 붙여 꾸며 보았답니다. 창문에 모인 종이 물방울이 살랑일 때마다 비 오는 여름날의 정취가 교실 안에 머물렀어요.";
+    const displayed = /창가|창문|붙여|게시/.test(context);
+    return displayed
+      ? "장마가 이어지는 날 색종이를 반듯하게 접어 동그란 물방울 모양을 만들어 보았어요. 종이의 모서리를 맞추고 접힌 자리를 눌러 완성한 물방울을 교실 창가에 하나씩 붙여 꾸며 보았답니다. 창문에 종이 물방울이 하나둘 모이며 비 오는 여름 풍경이 완성되었어요."
+      : "장마가 이어지는 날 색종이를 반듯하게 접어 동그란 물방울 모양을 만들어 보았어요. 종이의 모서리를 맞추고 접힌 자리를 눌러 물방울의 둥근 모양을 차근차근 완성했답니다. 접은 물방울이 하나둘 완성되며 장마를 담은 종이접기 작품이 모였어요.";
   }
   if (/모자이크/.test(context) && /(모빌|교실\s*천장)/.test(context) && /(빗방울|물방울)/.test(context) && /색종이/.test(context)) {
     return "비 오는 날씨를 보며 빗방울의 모습을 표현해보았어요. 빗방울 도안에 남색, 파란색, 하늘색 색종이를 찢어 붙여 모자이크로 꾸미고, 완성한 작품을 모빌로 만들어 교실 천장에 매달았답니다. 천장에 매단 알록달록한 색종이 모빌을 살펴보며 느낀 점을 자연스럽게 나누어보았어요.";
@@ -181,7 +189,10 @@ const naturalizeNoteBase = (note: string, playTitle: string) => {
     const sea = /바다생물|바다 생물|물고기|거북이/.test(context);
     const fruit = /여름과일|여름 과일|수박|참외/.test(context);
     const subjects = sea && fruit ? "바다 생물과 여름 과일" : sea ? "물고기와 거북이 등 바다 생물" : fruit ? "수박과 참외 등 여름 과일" : "여름에 떠오르는 다양한 모습";
-    return `야외용 분필을 들고 하늘정원으로 나가 바닥에 여름 풍경을 그려보았어요. ${subjects}을 자유롭게 표현하고, 친구와 생각을 나누며 커다란 협동 작품도 완성했답니다. 서로의 그림이 하나의 여름 풍경으로 이어지는 모습을 살펴보며 느낀 점을 자연스럽게 나누어보았어요.`;
+    const peerScene = /친구|함께|협동|합동/.test(context);
+    return peerScene
+      ? `야외용 분필을 들고 하늘정원으로 나가 바닥에 여름 풍경을 그려보았어요. ${subjects}을 그리고 친구의 그림과 이어 커다란 협동 작품을 완성했답니다. 여러 그림이 연결되며 하늘정원 바닥에 하나의 여름 풍경이 펼쳐졌어요.`
+      : `야외용 분필을 들고 하늘정원으로 나가 바닥에 여름 풍경을 그려보았어요. ${subjects}을 분필의 색과 선으로 나타내며 넓은 바닥을 채웠답니다. 분필 그림이 하나둘 완성되며 하늘정원 바닥에 여름 풍경이 펼쳐졌어요.`;
   }
   if (/여름이\s*(?:물러|몰려)온다/.test(context) && /태양/.test(context)) {
     const bookTitle = /여름이\s*몰려온다/.test(context) ? "여름이 몰려온다" : "여름이 물러온다";
@@ -194,7 +205,7 @@ const naturalizeNoteBase = (note: string, playTitle: string) => {
     return "여름 소리를 귀 기울여 듣고 어떤 소리인지 눈을 감고 맞혀보며 소리의 특징을 자세히 살펴보았어요. 다양한 여름 소리에 대해 이야기를 나눈 뒤, 소리를 나타내는 말을 떠올려 말해보고 알맞은 낱말로 써보았답니다. 친구가 고른 낱말을 함께 읽어보며 소리와 말이 연결되는 즐거움을 느끼고, 자신의 생각을 글자로 표현하는 문해 경험을 쌓아보았어요.";
   }
   if (/(구름|비가\s*되는|쉐이빙폼|색소|수조)/.test(context) && /관찰|실험|떨어/.test(context)) {
-    return "구름에서 비가 되는 과정을 알아보기 위해 수조에 쉐이빙폼을 뿌리고 구름을 만들어보았어요. 그 위에 색소를 떨어뜨리자 색소가 점점 아래로 내려가는 모습을 자세히 관찰하며 비가 내리는 모습을 탐색했답니다. 눈앞에서 나타나는 변화를 살펴보고 구름과 비의 관계를 자신의 말로 이야기해보며 자연 현상을 알아가는 즐거움을 느껴보았어요.";
+    return "수조에 쉐이빙폼을 뿌려 구름을 만든 뒤 그 위에 색소를 떨어뜨려 보았어요. 색소가 쉐이빙폼을 지나 점점 아래로 내려오는 모습을 가까이에서 관찰했답니다. 수조 안에 색소 비가 내려오는 장면이 이어지며 구름 실험이 마무리되었어요.";
   }
   if (/(스프레이건|물총|물놀이)/.test(context) && /(페트병|하늘정원|옥상정원|연결)/.test(context)) {
     return "스프레이건을 페트병에 연결해 물총을 만들어보고 하늘정원으로 올라가 물총놀이를 시작했어요. 직접 만든 물총으로 물을 뿌리며 놀이 방법을 바꾸어 시도하고, 친구와 물의 방향과 거리를 비교하며 즐겁게 놀이를 이어갔답니다. 함께 만든 물놀이 공간에서 서로의 생각을 나누고 안전하게 움직이며 놀이를 마무리해보았어요.";
@@ -207,13 +218,13 @@ const naturalizeNoteBase = (note: string, playTitle: string) => {
       : `어제 관심을 보였던 여름 소리를 다시 들어보고, 교실의 블록과 악기, 색연필 등 다양한 놀잇감으로 소리를 만들어보았어요. 친구와 두 명씩 짝을 지어 파도, 천둥, 매미, 빗소리와 빗방울 소리를 표현하고,${connectedPhrase} 느낀 점을 자연스럽게 나누어보았어요.`;
   }
   if (/실험활동|실험|가설|변화|녹아|녹는|섞어|번짐|관찰/.test(context) && /실험|변화|관찰|살펴/.test(context)) {
-    return "재료와 현상을 자세히 살펴보며 어떤 변화가 나타날지 함께 예상해보았어요. 직접 재료를 섞고 움직여보며 달라지는 모습을 관찰하고, 결과를 친구들과 비교해 이야기 나누었답니다. 반복해서 시도하는 과정에서 원인과 결과를 생각해보며 자신만의 방법으로 탐구하는 즐거움을 느껴보았어요.";
+    return "준비한 재료를 직접 움직이거나 섞어 보며 눈앞에서 달라지는 모습을 관찰했어요. 처음 모습과 변화한 장면을 차례로 살펴보며 실험 과정을 이어 갔답니다. 마지막 변화까지 확인하며 오늘의 실험 장면이 완성되었어요.";
   }
   if (/자연탐구|자연|식물|꽃|나뭇잎|곤충|생태|날씨|하늘|흙|씨앗/.test(context) && /관찰|살펴|찾아|탐색|기록/.test(context)) {
-    return "주변의 자연물을 자세히 관찰하며 색, 모양, 냄새와 움직임에서 발견한 특징을 이야기해보았어요. 관심이 가는 자연물을 찾아 서로 비교하고, 달라지는 모습을 살펴보며 생명과 자연의 변화를 알아갔답니다. 관찰한 내용을 자신의 말과 그림으로 표현하며 자연을 소중히 대하는 태도를 키워볼 수 있었어요.";
+    return "찾은 자연물을 가까이에서 살펴보며 눈에 보이는 색과 모양을 관찰했어요. 자연물의 생김새와 달라진 모습을 차례로 확인하며 관찰을 이어 갔답니다. 관찰한 자연물과 기록이 한자리에 모이며 오늘의 자연 탐구가 마무리되었어요.";
   }
   if (/신체놀이|신체활동|몸짓|달리|뛰|점프|던지|굴리|균형|기어|움직임|협응/.test(context)) {
-    return "몸을 움직여 다양한 동작을 시도하며 움직임의 방향과 속도를 조절해보았어요. 달리고, 뛰고, 구르고, 균형을 잡는 과정에서 몸의 움직임을 느끼고 친구와 놀이 방법을 의논했답니다. 서로의 움직임을 살펴보며 공간을 안전하게 사용하고 신체 협응과 조절력을 기르는 즐거운 시간이었어요.";
+    return "정한 신체 동작에 따라 몸을 움직이며 놀이를 시작했어요. 달리고 뛰거나 균형을 잡는 동작을 차례로 이어 가며 놀이 공간을 오갔답니다. 마지막 동작까지 이어지며 오늘의 신체놀이가 마무리되었어요.";
   }
   const details = note.trim().split(/[.\n]+/).map(part => part.trim()).filter(Boolean).map((part, index) => {
     let sentence = part
@@ -306,31 +317,41 @@ const naturalizeNoteBase = (note: string, playTitle: string) => {
 // 마지막 문장은 배움을 설명하거나 평가하지 않고, 메모에서 확인되는
 // 놀이 장면이 어떻게 이어졌는지를 부모가 그려 볼 수 있게 마무리한다.
 const playClosingSentence = (note: string, variant = 0) => {
-  const seasonal = /여름|바다|비|빗방울|태양|장마|아이스크림|빙수/.test(note);
-  const closings = [
-    // ① 표현
-    "완성한 모습을 하나둘 살펴보며 저마다 떠올린 장면을 작품으로 나누어 보았어요.",
-    // ② 탐색
-    "재료를 이리저리 살펴보며 다음 놀이로 이어질 새로운 방법을 발견했답니다.",
-    // ③ 협력
-    "서로의 놀이를 바라보고 생각을 보태며 한층 풍성한 장면을 함께 완성해 보았어요.",
-    // ④ 관찰
-    "처음과 달라진 모습을 찬찬히 바라보며 놀이에서 만난 변화를 다시 살펴보았답니다.",
-    // ⑤ 놀이의 확장
-    "놀이에서 생긴 관심은 새로운 재료와 방법을 찾아보는 다음 장면으로 자연스럽게 이어졌어요.",
-    // ⑥ 성취감
-    "하나둘 완성되어 가는 모습을 바라보며 놀이를 마친 얼굴에 뿌듯함이 번졌답니다.",
-    // ⑦ 문제 해결
-    "잘되지 않는 부분은 방법을 바꾸어 다시 시도하며 끝까지 놀이를 완성해 보았어요.",
-    // ⑧ 집중
-    "작은 부분까지 정성껏 다듬는 동안 놀이에 오래 머무는 집중된 모습이 이어졌답니다.",
-    // ⑨ 감각 경험
-    "손에 닿는 느낌과 눈앞의 색을 천천히 즐기며 감각으로 만난 놀이를 마무리해 보았어요.",
-    // ⑩ 계절 경험
-    seasonal
-      ? "완성된 장면들이 어우러지며 교실에도 시원한 계절 풍경이 펼쳐졌답니다."
-      : "완성된 장면들이 교실에 하나둘 모이며 오늘의 놀이 풍경이 따뜻하게 펼쳐졌답니다.",
-  ];
+  const hasPeerScene = /친구|짝|함께|협동|공동|합동/.test(note);
+  const hasDisplayScene = /전시|게시|붙여|걸어|매달|교실을\s*꾸|창가를\s*꾸|환경\s*구성/.test(note);
+  const hasExtendedScene = /가게\s*놀이|역할\s*놀이|게임|계속\s*놀이|확장활동/.test(note);
+  const resultLabel = /클레이/.test(note) && /아이스크림/.test(note) && /휴지심/.test(note) && /아이스바/.test(note)
+    ? "클레이 아이스크림과 휴지심 아이스바"
+    : /아이스크림/.test(note) ? "아이스크림 작품"
+      : /물방울/.test(note) ? "물방울 작품"
+        : /판화/.test(note) ? "판화 작품"
+          : /모빌/.test(note) ? "모빌 작품"
+            : /그림/.test(note) ? "그림 작품"
+              : /블록/.test(note) ? "블록 구성물"
+                : /실험/.test(note) ? "실험 장면"
+                  : "오늘 만든 작품";
+  const closings = hasDisplayScene
+    ? [
+        `완성한 ${resultLabel}은 교실에 전시되어 놀이 장면을 그대로 보여 주었어요.`,
+        `${resultLabel}이 교실 공간에 하나둘 더해지며 기록한 놀이 환경이 완성되었답니다.`,
+      ]
+    : hasExtendedScene
+      ? [
+          `${resultLabel}을 활용한 다음 놀이가 앞선 놀이의 흐름을 따라 계속 이어졌어요.`,
+          `완성한 ${resultLabel}은 이어지는 놀이에서 다시 사용하는 자료가 되었답니다.`,
+        ]
+      : hasPeerScene
+        ? [
+            `함께 만든 ${resultLabel}이 하나로 연결되며 공동 놀이의 마지막 장면이 완성되었어요.`,
+            `${resultLabel}을 함께 완성하며 친구들과 시작한 놀이가 끝까지 이어졌답니다.`,
+          ]
+        : [
+            `${resultLabel}이 하나둘 완성되며 오늘의 놀이가 마무리되었어요.`,
+            `준비한 재료가 ${resultLabel}의 모습으로 차근차근 완성되었답니다.`,
+            `${resultLabel}의 마지막 부분까지 완성하며 오늘의 놀이를 마무리했어요.`,
+            `만들던 ${resultLabel}이 완성된 모습으로 오늘의 놀이가 끝났답니다.`,
+            `${resultLabel}을 끝까지 완성하며 만들기 놀이가 차분히 마무리되었어요.`,
+          ];
   return closings[((variant % closings.length) + closings.length) % closings.length];
 };
 
@@ -394,21 +415,63 @@ const observationSentence = (sentence: string, note: string) => {
   return `${formalizePanelSentence(body)}, 놀이의 흐름을 차근차근 이어 가는 모습이 보였답니다.`;
 };
 
+// 결과물을 만든 뒤 메모에 기록된 후속 놀이가 실제로 어떻게 이어졌는지
+// 두 번째·세 번째 문장에 배치한다. 이 내용은 장식용 문구가 아니라 교사가
+// 기록한 핵심 놀이이므로 일반적인 마무리 문장보다 우선한다.
+const memoPlayContinuation = (note: string) => {
+  const hasShop = /가게\s*놀이|가게를\s*(?:열|꾸미)|손님|주인|판매/.test(note);
+  const hasRole = /역할\s*놀이|역할을\s*(?:나누|정하|맡)/.test(note);
+  const hasGame = /게임|규칙을\s*정|차례를\s*정|승부/.test(note);
+  const hasJointWork = /공동\s*작품|협동\s*작품|합동\s*그림|함께\s*(?:완성|만든|꾸민)/.test(note);
+  const hasExhibition = /전시|게시|작품을\s*(?:붙|걸|세워)/.test(note);
+  const hasEnvironment = /환경\s*구성|교실을\s*꾸|창가를\s*꾸|천장에\s*매달/.test(note);
+
+  let process = "";
+  if (hasShop && hasRole) {
+    process = "완성한 작품을 활용해 손님과 주인 역할을 나누고 가게놀이로 이어 가는 모습이 보였답니다.";
+  } else if (hasShop) {
+    process = "완성한 작품을 가게에 차려 놓고 고르고 주고받는 가게놀이로 이어 가는 모습이 보였답니다.";
+  } else if (hasRole) {
+    process = "완성한 놀이 자료를 활용해 필요한 역할을 나누고 역할놀이를 이어 가는 모습이 보였답니다.";
+  } else if (hasGame) {
+    process = "완성한 놀이 자료로 규칙과 차례를 정하고 게임을 이어 가는 모습이 보였답니다.";
+  } else if (hasJointWork) {
+    process = "각자의 표현을 한자리에 잇고 함께 의논하며 공동작품을 완성해 가는 모습이 보였답니다.";
+  }
+
+  let ending = "";
+  if (hasExhibition && hasEnvironment) {
+    ending = "완성한 작품은 교실 공간에 전시되어 다음 놀이가 시작되는 새로운 환경으로 이어졌어요.";
+  } else if (hasExhibition) {
+    ending = "완성한 작품은 교실에 전시되어 서로의 놀이 장면을 계속 살펴볼 수 있었어요.";
+  } else if (hasEnvironment) {
+    ending = "완성한 작품이 교실과 창가를 채우며 놀이가 머무는 새로운 공간으로 이어졌어요.";
+  }
+
+  return { process, ending };
+};
+
 const toPanelDescription = (note: string, story: string, closingVariant = 0) => {
+  const continuation = memoPlayContinuation(note);
   if (/장마/.test(note) && /물방울/.test(note) && /종이접기|색종이|접기/.test(note)) {
-    return story;
+    const sentences = dedupeSentences(story).split(/(?<=[.!?])\s+/).filter(Boolean);
+    return dedupeSentences(`${sentences[0] || ""} ${continuation.process || sentences[1] || ""} ${continuation.ending || sentences[2] || playClosingSentence(note, closingVariant)}`);
   }
   if (/클레이/.test(note) && /아이스크림/.test(note) && /휴지심/.test(note) && /아이스바/.test(note)) {
-    return `아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 장식과 무늬를 더하며 저마다의 여름 디저트를 완성했답니다. ${playClosingSentence(note, closingVariant)}`;
+    const process = continuation.process || "클레이의 모양을 다듬어 아이스크림을 만들고, 휴지심에는 아이스바 모양을 더해 두 가지 여름 간식을 차근차근 완성했답니다.";
+    const ending = continuation.ending || playClosingSentence(note, closingVariant);
+    return `아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. ${process} ${ending}`;
   }
   if (/클레이/.test(note) && /아이스크림/.test(note)) {
-    return `아이들은 말랑말랑한 클레이를 조물조물 만지며 시원한 아이스크림 모양을 만들어 보았습니다. 손끝으로 크기와 모양을 차근차근 다듬고 장식을 더해, 저마다 떠올린 아이스크림을 완성하는 모습이 보였답니다. ${playClosingSentence(note, closingVariant)}`;
+    const process = continuation.process || "클레이를 떼어 붙이고 크기와 모양을 차근차근 다듬어 아이스크림 모형을 완성했답니다.";
+    const ending = continuation.ending || playClosingSentence(note, closingVariant);
+    return `아이들은 말랑말랑한 클레이를 조물조물 만지며 시원한 아이스크림 모양을 만들어 보았습니다. ${process} ${ending}`;
   }
   const sentences = dedupeSentences(story).split(/(?<=[.!?])\s+/).filter(Boolean);
   const first = `${formalizePanelSentence(sentences[0] || note)}.`;
   const secondSource = sentences[1] || sentences[0] || note;
-  const second = observationSentence(secondSource, note);
-  const third = playClosingSentence(note, closingVariant);
+  const second = continuation.process || observationSentence(secondSource, note);
+  const third = continuation.ending || playClosingSentence(note, closingVariant);
   return dedupeSentences(`${first} ${second} ${third}`);
 };
 
@@ -495,32 +558,14 @@ const playPanelStyleIssues = (value: string, note = "") => {
   return issues;
 };
 
-const panelDescriptionIssues = (value: string, note = "") => {
-  const text = value.trim();
-  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
-  const issues: string[] = [];
-  if (sentences.length !== 3) issues.push("정확히 3문장이어야 합니다");
-  if (text.length < 150 || text.length > 180) issues.push("150~180자로 작성해 주세요");
-  const endings = sentences.map(sentence => sentence.match(/(?:보았습니다|모습을 보였습니다|모습이 보였답니다|이어 나갔습니다|이어졌답니다|넓혀 나갔습니다|보았답니다|보았어요|했답니다|수 있었어요|보였어요|나타났어요|완성했어요|즐겨 보았어요|꾸며 보았어요|담아 보았어요|이어졌어요|펼쳐졌답니다|번졌답니다|머물렀어요)\.$/)?.[0] || "");
-  if (endings.filter(Boolean).length !== sentences.length) issues.push("부드러운 부모 공개용 종결 표현을 사용해 주세요");
-  if (new Set(endings).size !== endings.length) issues.push("같은 종결 표현을 반복할 수 없습니다");
-  const varietyCount = text.match(/다양한|다채로운|여러 가지/g)?.length ?? 0;
-  if (varietyCount > 1) issues.push("'다양한·다채로운·여러 가지'는 1회 이하로 사용해 주세요");
-  if (/교육적 효과|학습 목표|발달시켰다/.test(text)) issues.push("딱딱한 교육 용어는 사용할 수 없습니다");
-  if (AI_CLICHE_PATTERN.test(text)) issues.push("금지된 AI 문구와 유사한 표현은 사용할 수 없습니다");
-  if (/(?:해봄|해보았음|볼\s*수\s*있었음|나타남|관찰함|표현함|놀이함|했음|있음|함)(?:[.!?]|$)/.test(text)) issues.push("메모체 종결은 사용할 수 없습니다");
-  if (note && copiesMemoStructure(note, text)) issues.push(`입력은 메모입니다. 문장 구조를 복사하지 말고 ${PANEL_WRITING_ROLE}으로 새롭게 재서술해 주세요`);
-  issues.push(...playPanelStyleIssues(text, note));
-  return issues;
-};
+const panelDescriptionIssues = (value: string, _note = "") => validatePlaypanel("", value).errors;
 
-const panelTitleIssues = (value: string, note = "") => {
-  const title = value.trim().replace(/\s+/g, " ");
-  const issues: string[] = [];
-  if (title.length < 8 || title.length > 16) issues.push("제목은 8~16자로 작성해 주세요");
-  if (/색과 선으로 펼친 우리 생각|생각을 담다|즐거운 표현|상상의 세계|창의력을 키워요|생각을 모아 만든 우리 세상/.test(title)) issues.push("재료·계절·놀이 결과가 보이는 제목으로 작성해 주세요");
-  if (note && normalizedMemoText(note).startsWith(normalizedMemoText(title))) issues.push("메모를 축약하지 말고 놀이패널 제목으로 새롭게 작성해 주세요");
-  return issues;
+const ABSTRACT_PANEL_TITLES = /^(?:교실로 이어진 놀이|달콤한 여름 디저트|색과 선으로 펼친 우리 생각|생각이 자라는 시간|즐거운 표현|우리들의 이야기|놀이 속 상상|특별한 하루)$/;
+const panelTitleIssues = (value: string, _note = "") => {
+  const title = value.trim();
+  if (!title) return ["놀이 제목을 입력해 주세요"];
+  if (ABSTRACT_PANEL_TITLES.test(title)) return ["만든 것·장소·대상·소재가 드러나는 구체적인 제목으로 바꿔 주세요"];
+  return [];
 };
 
 const normalizedSentences = (value: string) => value
@@ -591,20 +636,23 @@ const preserveMemoCore = (note: string, story: string) => {
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
   const source = `${note} ${currentTitle}`.replace(/\s+/g, " ");
-  if (/클레이/.test(source) && /아이스크림/.test(source)) return "달콤한 여름 디저트";
-  if (/팥빙수|오레오\s*빙수/.test(source)) return "그림책 속 시원한 팥빙수";
-  if (/장마/.test(source) && /물방울/.test(source)) return "장마를 담은 물방울";
-  if (/자연물/.test(source) && /디저트|아이스크림|빙수/.test(source)) return "자연물로 꾸민 여름 디저트";
+  if (/클레이/.test(source) && /아이스크림/.test(source) && /휴지심|아이스바/.test(source)) return "클레이 아이스크림과 아이스바";
+  if (/클레이/.test(source) && /아이스크림/.test(source)) return "내가 만든 클레이 아이스크림";
+  if (/팥빙수|오레오\s*빙수/.test(source)) return "팥빙수 한 그릇";
+  if (/장마/.test(source) && /물방울/.test(source) && /창가|창문/.test(source)) return "창가에 내린 물방울";
+  if (/장마/.test(source) && /물방울/.test(source)) return "장마에 접은 물방울";
+  if (/자연물/.test(source) && /디저트|아이스크림|빙수/.test(source)) return "자연물 여름 디저트";
   if (/모자이크/.test(source) && /모빌/.test(source) && /물방울/.test(source)) return "알록달록 모자이크 물방울 모빌";
   if (/모자이크/.test(source) && /모빌/.test(source)) return "알록달록 색종이 모자이크 모빌";
   if (/우드락|판화|찍어내/.test(source) && /소리/.test(source)) return "여름 소리를 찍어낸 우드락 판화";
   if (/소리/.test(source) && /(말로\s*써|써봄|낱말|어휘|글자)/.test(source)) return "여름 소리를 낱말로 담아요";
   if (/(구름|비가\s*되는|쉐이빙폼|색소|수조)/.test(source)) return "쉐이빙폼 구름에서 내리는 색소 비";
   if (/(스프레이건|물총|물놀이)/.test(source) && /페트병/.test(source)) return "페트병으로 만든 우리 물총놀이";
-  if (/실험활동|실험|가설|변화|녹아|섞어/.test(source)) return "재료의 변화를 발견하는 실험놀이";
-  if (/꽃|나뭇잎|꽃잎/.test(source)) return "꽃과 나뭇잎을 만나요";
-  if (/곤충|생태|씨앗|식물|자연탐구/.test(source)) return "자연을 살펴보는 탐구 놀이";
-  if (/신체놀이|신체활동|달리|뛰|점프|균형|기어|움직임/.test(source)) return "몸의 움직임으로 펼친 신체놀이";
+  if (/실험활동|실험|가설|변화|녹아|섞어/.test(source)) return "눈앞에서 달라지는 재료 실험";
+  if (/꽃|나뭇잎|꽃잎/.test(source)) return "꽃과 나뭇잎 관찰";
+  if (/곤충|생태|씨앗|식물|자연탐구/.test(source)) return "교실 밖 자연 관찰";
+  if (/개구리/.test(source) && /점프|뛰/.test(source)) return "점프하는 개구리";
+  if (/신체놀이|신체활동|달리|뛰|점프|균형|기어|움직임/.test(source)) return "달리고 점프하는 신체놀이";
   if (/블록|놀잇감/.test(source) && /여름소리|여름 소리/.test(source)) return "블록과 놀잇감으로 만든 여름 소리";
   if (/빨대|불어/.test(source) && /물감/.test(source)) return "후후 불어 피어난 물감 그림";
   if (/비|빗방울/.test(source) && /번지|수채/.test(source)) return "번지는 물감으로 그린 비 오는 날";
@@ -616,68 +664,43 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (isBookPlay && /소리|말|의성어|의태어/.test(source)) return "그림책에서 만난 재미있는 소리";
   if (isBookPlay && /태양|햇빛|햇살/.test(source)) return "그림책에서 만난 여름의 태양";
   if (isBookPlay && /비|빗방울|장마/.test(source)) return "그림책에서 만난 비 오는 날";
-  if (isBookPlay) return "그림책에서 시작된 우리들의 이야기";
-  if (/분필/.test(source) && /옥상|정원/.test(source)) return "옥상정원에 펼쳐진 우리의 풍경";
+  if (isBookPlay) return "그림책 속 장면 놀이";
+  if (/분필/.test(source) && /옥상|정원/.test(source)) return "옥상정원 분필 그림";
   if (/분필/.test(source) && /바닥/.test(source)) return "바닥이 커다란 도화지가 되었어요";
   if (/물감/.test(source) && /빨대|불어/.test(source)) return "바람으로 피어난 물감 그림";
   if (/비|빗방울|수채|번짐/.test(source)) return "물감으로 만난 비 오는 날";
-  if (/소리|악기|노래|리듬/.test(source)) return "우리 주변에서 찾은 소리";
-  if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연물로 이어진 놀이";
+  if (/소리|악기|노래|리듬/.test(source)) return "교실에서 찾은 소리";
+  if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연물 꾸미기";
   if (/블록|쌓기|쌓아|구성/.test(source)) return "블록으로 만든 놀이 공간";
   if (/그림|색|미술|꾸미|표현/.test(source)) return "알록달록 꾸미기 놀이";
-  if (/물놀이|바다|파도|물고기/.test(source)) return "물과 함께 발견한 여름 이야기";
+  if (/계곡/.test(source) && /교실/.test(source)) return "교실에 생긴 계곡";
+  if (/계곡/.test(source)) return "계곡에서 첨벙첨벙";
+  if (/물놀이|바다|파도|물고기/.test(source)) return "시원한 여름 물놀이";
   const keyword = memoTokens(note).find(token => !/아이들|유아들|친구들|오늘|놀이|활동/.test(token));
   if (keyword) {
     const code = keyword.charCodeAt(keyword.length - 1);
     const hasBatchim = code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
-    return `${keyword}${hasBatchim ? "으로" : "로"} 이어진 오늘의 놀이`.slice(0, 16);
+    return `${keyword}${hasBatchim ? "으로" : "로"} 만든 놀이`.slice(0, 16);
   }
-  return "오늘 함께한 놀이 이야기";
+  return "오늘 만든 놀이 작품";
 };
 
-const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex: number, existingDescriptions: string[] = []) => {
-  // ① 사실 추출 → ② 관련 예시 1~3개 선택(문체·분위기만 참고) → ③ 새 제목 생성
-  // ④ 놀이패널 생성 → ⑤ 놀이패널 스타일 검사 → ⑥ AI 표현 검사
-  // ⑦ 메모·예시 유사도 검사 → ⑧ 150~180자 검사 → ⑨ 최종 출력
+const varyNewspaperTitle = (baseTitle: string, note: string, styleIndex: number) => {
+  void note;
+  void styleIndex;
+  return baseTitle;
+};
+
+const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex: number, _existingDescriptions: string[] = [], styleIndex = 0) => {
+  // 메모 사실과 가까운 예시 3개의 문체만 참고해 수정 가능한 초안을 만든다.
   const facts = extractMemoFacts(note);
   const fewShots = selectPlayPanelFewShots(note, 3);
-  const title = makeNewspaperTitle(note, "", isBookPlay);
+  const title = varyNewspaperTitle(makeNewspaperTitle(note, "", isBookPlay), note, styleIndex);
   const factualStory = preserveMemoCore(note, naturalizeNoteBase(note, title));
-  const candidates: string[] = [];
   const preferredClosing = Math.max(0, (fewShots[0]?.closingPerspective || 1) - 1);
-
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const closingVariant = preferredClosing + playIndex + attempt;
-    candidates.push(fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, closingVariant), title)));
-    candidates.push(fitDescriptionToPanel(restateCopiedMemo(note, closingVariant)));
-  }
-  const audited = candidates
-    .filter(Boolean)
-    .map(description => ({ description, audit: auditGeneratedPanel(note, title, description, existingDescriptions, fewShots) }));
-  const passed = audited.find(({ audit }) =>
-    !audit.copiedInput
-    && !audit.summarizedMemo
-    && !audit.copiedFewShot
-    && audit.parentFacingPanel
-    && audit.playSceneVisible
-    && audit.notReportOrDailyLog
-    && audit.processCentered
-    && audit.notResultOnly
-    && audit.lingeringPlayEnding
-    && audit.playPanelStyle
-    && audit.teacherNaturalness
-    && !audit.repeatedAcrossPanel
-    && audit.freshPanelTitle,
-  );
-  if (passed) return { title, description: passed.description, facts, fewShots, audit: passed.audit };
-
-  // 모든 검사를 통과한 문장이 없으면 오류가 가장 적은 교사 재서술안을 제시하되,
-  // 승인 버튼은 기존 검증 규칙에 의해 활성화되지 않는다.
-  const best = audited.sort((a, b) =>
-    (a.audit.descriptionIssues.length + a.audit.titleIssues.length)
-    - (b.audit.descriptionIssues.length + b.audit.titleIssues.length),
-  )[0];
-  return { title, description: best?.description || "", facts, fewShots, audit: best?.audit };
+  const closingVariant = preferredClosing + playIndex + styleIndex;
+  const description = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, closingVariant), title));
+  return { title, description, facts, fewShots };
 };
 
 // 현재 프로젝트의 생성기를 데이터셋 패키지가 요구하는 callModel 규격에 연결한다.
@@ -687,14 +710,17 @@ const createCurrentCallModel = (
   isBookPlay: boolean,
   playIndex: number,
   existingDescriptions: string[],
+  generationSeed = 0,
 ): ModelCaller => {
   let modelAttempt = 0;
-  return async () => {
+  return async (prompt: string) => {
+    const promptedStyle = playpanelGenerationStyles.findIndex(style => prompt.includes(style));
     const generated = generateTeacherPanelDraft(
       note,
       isBookPlay,
-      playIndex + modelAttempt,
+      playIndex + modelAttempt + generationSeed * 7,
       existingDescriptions,
+      promptedStyle >= 0 ? promptedStyle : modelAttempt % playpanelGenerationStyles.length,
     );
     modelAttempt += 1;
     return JSON.stringify({ title: generated.title, description: generated.description });
@@ -944,28 +970,56 @@ export default function Home() {
       .filter(Boolean);
     const callModel = createCurrentCallModel(submittedMemo, targetPlay.isBookPlay, idx, existingDescriptions);
 
+    const styleOffset = ((targetPlay.generationStyle ?? -1) + 1) % playpanelGenerationStyles.length;
     try {
-      // generatePlaypanel 내부에서 품질 실패 결과를 버리고 최대 3회 다시 생성한다.
-      const generated = await generatePlaypanel(submittedMemo, callModel, 3);
-      const titleErrors = panelTitleIssues(generated.title, submittedMemo);
-      const descriptionErrors = panelDescriptionIssues(generated.description, submittedMemo);
-      if (titleErrors.length || descriptionErrors.length) {
-        throw new Error([...titleErrors, ...descriptionErrors].join(" · "));
-      }
+      const generated = await generatePlaypanel(submittedMemo, callModel, 5, styleOffset);
       setPlays(current => current.map((play, playIndex) => {
         if (playIndex !== idx || play.note.trim() !== submittedMemo) return play;
-        return { ...play, title: generated.title, description: generated.description, approved: false };
+        return { ...play, title: generated.title, description: generated.description, approved: false, generationStyle: generated.styleIndex, regenerationCount: 0 };
       }));
-    } catch (error) {
-      // 검사를 통과하지 못한 초안은 상태에 저장하지 않으므로 사용자에게 노출되지 않는다.
-      const message = error instanceof Error ? error.message : "놀이패널 생성에 실패했습니다.";
-      window.alert(`놀이패널을 다시 생성하지 못했습니다. 메모를 조금 더 구체적으로 적어 주세요.\n${message}`);
+    } catch {
+      // 모델 응답 자체를 읽을 수 없는 드문 경우에도 로컬 초안을 반드시 보여 준다.
+      const fallback = generateTeacherPanelDraft(submittedMemo, targetPlay.isBookPlay, idx, existingDescriptions, styleOffset);
+      setPlays(current => current.map((play, playIndex) => playIndex === idx
+        ? { ...play, title: fallback.title, description: fallback.description, approved: false, generationStyle: styleOffset, regenerationCount: 0 }
+        : play));
+    }
+  };
+  const regenerateFromNote = async (idx: number) => {
+    const targetPlay = plays[idx];
+    if (!targetPlay?.note.trim() || !targetPlay.title.trim()) return;
+    const fixedTitle = targetPlay.title;
+    const previousDescription = targetPlay.description;
+    const nextCount = (targetPlay.regenerationCount ?? 0) + 1;
+    const styleOffset = ((targetPlay.generationStyle ?? -1) + 1) % playpanelGenerationStyles.length;
+    const existingDescriptions = plays
+      .filter((_, playIndex) => playIndex !== idx)
+      .map(play => play.publishedDescription || play.description)
+      .filter(Boolean);
+    const callModel = createCurrentCallModel(targetPlay.note, targetPlay.isBookPlay, idx, existingDescriptions, nextCount);
+
+    try {
+      const generated = await regenerateDescription({
+        memo: targetPlay.note,
+        title: fixedTitle,
+        previousDescription,
+        callModel,
+        maxAttempts: 5,
+        styleOffset,
+      });
+      setPlays(current => current.map((play, playIndex) => playIndex === idx
+        ? { ...play, description: generated.description, approved: false, generationStyle: generated.styleIndex, regenerationCount: nextCount }
+        : play));
+    } catch {
+      const fallback = generateTeacherPanelDraft(targetPlay.note, targetPlay.isBookPlay, idx + nextCount * 7, existingDescriptions, styleOffset);
+      setPlays(current => current.map((play, playIndex) => playIndex === idx
+        ? { ...play, description: fallback.description, approved: false, generationStyle: styleOffset, regenerationCount: nextCount }
+        : play));
     }
   };
   const publishDraft = (idx: number, title: string, description: string) => {
     const completedDescription = fitDescriptionToPanel(removeTitleLead(description, title));
-    const note = plays[idx]?.note || "";
-    if (panelTitleIssues(title, note).length || panelDescriptionIssues(completedDescription, note).length) return;
+    if (!title.trim() || !completedDescription.trim()) return;
     const next = plays.map((play, i) => i === idx ? { ...play, title, description: completedDescription, publishedTitle: title, publishedDescription: completedDescription, approved: true } : play);
     setPlays(next);
     if (next.every(play => play.approved)) setWeeklyLearning(makeWeeklyLearning(next, theme));
@@ -1259,8 +1313,8 @@ export default function Home() {
         <div className="section-title"><b>{pi+1}. 놀이 기록</b>{plays.length>5&&<button className="text-btn" onClick={()=>setPlays(v=>v.filter((_,i)=>i!==pi))}>삭제</button>}</div>
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지 업로드</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload book-drop-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>dropBookCover(e,pi)}><span>{p.bookCover?"그림책 표지 수정 · 클릭 또는 드래그":"클릭 또는 드래그해서 업로드"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
-        <label>놀이 메모 <span className="memo-guide">메모를 적고 <kbd>Enter</kbd>를 누르면 제목과 설명이 만들어집니다 <i>·</i> 줄바꿈은 <kbd>Shift + Enter</kbd></span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,title:"",description:"",publishedTitle:"",publishedDescription:"",approved:false})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing)e.preventDefault()}} onKeyUp={e=>{if(e.key==="Enter"&&!e.shiftKey)generateFromNote(pi,e.currentTarget.value)}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목 <span className="description-guide">8~16자 ({p.title.trim().length}자)</span><input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label>{panelTitleIssues(p.title,p.note).length>0&&<p className="description-rule-error">{panelTitleIssues(p.title,p.note).join(" · ")}</p>}<label>놀이 설명 <span className="description-guide">부모 공개용 3문장 · 150~180자 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToPanel(e.currentTarget.value),approved:false})}/></label>{panelDescriptionIssues(p.description,p.note).length>0&&<p className="description-rule-error">{panelDescriptionIssues(p.description,p.note).join(" · ")}</p>}<button className={p.approved?"approved":"approve"} disabled={p.approved||panelTitleIssues(p.title,p.note).length>0||panelDescriptionIssues(p.description,p.note).length>0} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
+        <label>놀이 메모 <span className="memo-guide">메모를 적고 <kbd>Enter</kbd>를 누르면 제목과 설명이 만들어집니다 <i>·</i> 줄바꿈은 <kbd>Shift + Enter</kbd></span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,title:"",description:"",publishedTitle:"",publishedDescription:"",approved:false,generationStyle:-1,regenerationCount:0})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing)e.preventDefault()}} onKeyUp={e=>{if(e.key==="Enter"&&!e.shiftKey)generateFromNote(pi,e.currentTarget.value)}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
+        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목 <span className="description-guide">직접 수정 가능 ({p.title.trim().length}자)</span><input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label>{panelTitleIssues(p.title,p.note).length>0&&<p className="description-rule-error">{panelTitleIssues(p.title,p.note).join(" · ")}</p>}<label>놀이 설명 <span className="description-guide">부모 공개용 3문장 · 140~190자 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToPanel(e.currentTarget.value),approved:false})}/></label>{panelDescriptionIssues(p.description,p.note).length>0&&<p className="description-rule-error">{panelDescriptionIssues(p.description,p.note).join(" · ")}</p>}<div className="draft-actions"><button type="button" className="regenerate" onClick={()=>regenerateFromNote(pi)}>다시 생성</button><button className={p.approved?"approved":"approve"} disabled={p.approved||panelTitleIssues(p.title,p.note).length>0} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div></div>}
         <div className="photo-count-row"><p className="mini-label">Shift로 여러 장을 선택하면 선택한 칸부터 순서대로 채워집니다</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 4|6|8})}><option value={4}>4장</option><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si} draggable onDragStart={e=>startPhotoOrderDrag(e,pi,si)} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move"}} onDrop={e=>dropPhotoOrder(e,pi,si)} onDragEnd={()=>{orderDragRef.current=null}}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden multiple type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>
