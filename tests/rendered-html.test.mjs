@@ -42,6 +42,8 @@ test("includes durable persistence and calendar logic", async () => {
 
 test("locks parent-facing play descriptions to the approved writing rules", async () => {
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const datasetGenerator = await readFile(new URL("src/playpanel-ai/lib/generatePlaypanel.ts", root), "utf8");
+  const datasetStyleChecker = await readFile(new URL("src/playpanel-ai/lib/styleChecker.ts", root), "utf8");
   const fewShots = await readFile(new URL("app/play-panel-few-shots.ts", root), "utf8");
   assert.match(page, /text\.length < 150 \|\| text\.length > 180/);
   assert.match(page, /sentences\.length !== 3/);
@@ -95,4 +97,17 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(fewShots, /"봄", "여름", "가을", "겨울", "자연물", "그림책", "미술", "과학", "신체", "역할놀이", "요리", "바깥놀이"/);
   assert.doesNotMatch(fewShots, /상상력과 표현력을 넓혀 나갔습니다|재료의 특성을 탐색하며/);
   assert.doesNotMatch(page, /candidates\.unshift\(exactFewShot\.description\)/);
+  assert.match(page, /import \{ generatePlaypanel, type ModelCaller \}/);
+  assert.match(page, /const createCurrentCallModel/);
+  assert.match(page, /const callModel = createCurrentCallModel/);
+  assert.match(page, /await generatePlaypanel\(submittedMemo, callModel, 3\)/);
+  assert.match(page, /play\.note\.trim\(\) !== submittedMemo/);
+  assert.match(page, /검사를 통과하지 못한 초안은 상태에 저장하지 않으므로 사용자에게 노출되지 않는다/);
+  assert.match(datasetGenerator, /for \(let attempt = 1; attempt <= maxAttempts; attempt \+= 1\)/);
+  assert.match(datasetGenerator, /memoSimilarity > 0\.55/);
+  assert.match(datasetGenerator, /exampleSimilarity > 0\.62/);
+  assert.match(datasetStyleChecker, /charCount < 150 \|\| charCount > 180/);
+  assert.match(datasetStyleChecker, /sentences\.length !== 3/);
+  assert.match(datasetStyleChecker, /부모 공개용 놀이패널 문체/);
+  assert.match(datasetStyleChecker, /마지막 문장은 교육 효과가 아닌 놀이 장면의 여운/);
 });

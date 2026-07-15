@@ -3,6 +3,7 @@
 import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { selectPlayPanelFewShots } from "./play-panel-few-shots";
 import type { PlayPanelFewShot } from "./play-panel-few-shots";
+import { generatePlaypanel, type ModelCaller } from "../src/playpanel-ai/lib/generatePlaypanel";
 
 type Photo = { src: string; x: number; y: number } | null;
 type PptxConstructor = new () => any;
@@ -679,6 +680,27 @@ const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex:
   return { title, description: best?.description || "", facts, fewShots, audit: best?.audit };
 };
 
+// 현재 프로젝트의 생성기를 데이터셋 패키지가 요구하는 callModel 규격에 연결한다.
+// 외부 AI API를 도입할 때에도 이 함수만 교체하면 검증·재시도 흐름은 그대로 유지된다.
+const createCurrentCallModel = (
+  note: string,
+  isBookPlay: boolean,
+  playIndex: number,
+  existingDescriptions: string[],
+): ModelCaller => {
+  let modelAttempt = 0;
+  return async () => {
+    const generated = generateTeacherPanelDraft(
+      note,
+      isBookPlay,
+      playIndex + modelAttempt,
+      existingDescriptions,
+    );
+    modelAttempt += 1;
+    return JSON.stringify({ title: generated.title, description: generated.description });
+  };
+};
+
 const withAnd = (word: string) => {
   const last = word.charCodeAt(word.length - 1);
   const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
@@ -911,17 +933,34 @@ export default function Home() {
     if (patch.approved === false) setWeeklyLearning("");
     setPlays(v => v.map((p, i) => i === idx ? { ...p, ...patch } : p));
   };
-  const generateFromNote = (idx: number, note: string) => {
-    if (!note.trim()) return;
-    setPlays(current => current.map((p, i) => {
-      if (i !== idx) return p;
-      const existingDescriptions = current
-        .filter((_, playIndex) => playIndex !== idx)
-        .map(play => play.publishedDescription || play.description)
-        .filter(Boolean);
-      const generated = generateTeacherPanelDraft(note, p.isBookPlay, idx, existingDescriptions);
-      return { ...p, note, title: generated.title, description: generated.description, approved: false };
-    }));
+  const generateFromNote = async (idx: number, note: string) => {
+    const submittedMemo = note.trim();
+    if (!submittedMemo) return;
+    const targetPlay = plays[idx];
+    if (!targetPlay) return;
+    const existingDescriptions = plays
+      .filter((_, playIndex) => playIndex !== idx)
+      .map(play => play.publishedDescription || play.description)
+      .filter(Boolean);
+    const callModel = createCurrentCallModel(submittedMemo, targetPlay.isBookPlay, idx, existingDescriptions);
+
+    try {
+      // generatePlaypanel 내부에서 품질 실패 결과를 버리고 최대 3회 다시 생성한다.
+      const generated = await generatePlaypanel(submittedMemo, callModel, 3);
+      const titleErrors = panelTitleIssues(generated.title, submittedMemo);
+      const descriptionErrors = panelDescriptionIssues(generated.description, submittedMemo);
+      if (titleErrors.length || descriptionErrors.length) {
+        throw new Error([...titleErrors, ...descriptionErrors].join(" · "));
+      }
+      setPlays(current => current.map((play, playIndex) => {
+        if (playIndex !== idx || play.note.trim() !== submittedMemo) return play;
+        return { ...play, title: generated.title, description: generated.description, approved: false };
+      }));
+    } catch (error) {
+      // 검사를 통과하지 못한 초안은 상태에 저장하지 않으므로 사용자에게 노출되지 않는다.
+      const message = error instanceof Error ? error.message : "놀이패널 생성에 실패했습니다.";
+      window.alert(`놀이패널을 다시 생성하지 못했습니다. 메모를 조금 더 구체적으로 적어 주세요.\n${message}`);
+    }
   };
   const publishDraft = (idx: number, title: string, description: string) => {
     const completedDescription = fitDescriptionToPanel(removeTitleLead(description, title));
