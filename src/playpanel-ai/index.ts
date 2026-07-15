@@ -14,3 +14,4 @@ export * from "./lib/styleChecker";
 export * from "./lib/similarityChecker";
 export * from "./lib/lengthChecker";
 export * from "./lib/generatePlaypanel";
+export * from "./lib/memoFacts";

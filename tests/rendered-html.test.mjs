@@ -40,12 +40,13 @@ test("includes durable persistence and calendar logic", async () => {
   assert.match(page, /<option value=\{8\}>8장<\/option>/);
 });
 
-test("keeps playpanel generation success-first with only minimum validation", async () => {
+test("keeps generation success-first while preserving every core memo step", async () => {
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
   const datasetGenerator = await readFile(new URL("src/playpanel-ai/lib/generatePlaypanel.ts", root), "utf8");
   const datasetStyleChecker = await readFile(new URL("src/playpanel-ai/lib/styleChecker.ts", root), "utf8");
   const datasetPrompt = await readFile(new URL("src/playpanel-ai/lib/generateDescription.ts", root), "utf8");
   const datasetTitlePrompt = await readFile(new URL("src/playpanel-ai/lib/generateTitle.ts", root), "utf8");
+  const memoFacts = await readFile(new URL("src/playpanel-ai/lib/memoFacts.ts", root), "utf8");
   const forbidden = await readFile(new URL("src/playpanel-ai/data/forbidden.ts", root), "utf8");
   const fewShots = await readFile(new URL("app/play-panel-few-shots.ts", root), "utf8");
   assert.match(page, /generateTeacherPanelDraft/);
@@ -69,6 +70,8 @@ test("keeps playpanel generation success-first with only minimum validation", as
   assert.match(datasetGenerator, /if \(lastResult\) return lastResult/);
   assert.match(datasetGenerator, /selectExamples\(memo, 3\)/);
   assert.match(datasetGenerator, /export async function regenerateDescription/);
+  assert.match(datasetGenerator, /validateMemoCoverage\(memo, result\.description\)/);
+  assert.match(datasetGenerator, /메모의 핵심 내용이 누락되었습니다/);
   assert.match(datasetGenerator, /description\.trim\(\) === previousDescription\.trim\(\)/);
   assert.doesNotMatch(datasetGenerator, /memoSimilarity|exampleSimilarity|validateMemoCore|jaccard/);
   assert.match(datasetStyleChecker, /charCount < 140 \|\| charCount > 190/);
@@ -76,6 +79,8 @@ test("keeps playpanel generation success-first with only minimum validation", as
   assert.match(datasetStyleChecker, /for \(const phrase of forbiddenPhrases\)/);
   assert.doesNotMatch(datasetStyleChecker, /문체|유사도|종결|교육 효과|놀이 장면의 여운/);
   assert.match(datasetPrompt, /놀이 재료, 과정, 확장, 계절, 그림책 여부/);
+  assert.match(datasetPrompt, /반드시 반영할 핵심 사실 체크리스트/);
+  assert.match(datasetPrompt, /그림책 → 만들기 → 장소 이동 → 놀이 행동 → 게임 확장/);
   assert.match(datasetPrompt, /검사보다 교사가 수정할 수 있는 자연스러운 초안을 제공하는 것을 우선/);
   assert.match(datasetPrompt, /현재 제목 "\$\{title\}"은 고정값/);
   assert.match(datasetPrompt, /제목을 수정하거나 새로 생성하지 마세요/);
@@ -86,6 +91,13 @@ test("keeps playpanel generation success-first with only minimum validation", as
   assert.match(datasetTitlePrompt, /교실로 이어진 놀이/);
   assert.match(page, /교실에 생긴 계곡/);
   assert.match(page, /내가 만든 클레이 아이스크림/);
+  assert.match(page, /makeCoverageAwareDescription/);
+  assert.match(page, /validateMemoCoverage\(note, description\)/);
+  assert.match(memoFacts, /export function analyzeMemo/);
+  assert.match(memoFacts, /export function validateMemoCoverage/);
+  assert.match(memoFacts, /"pictureBook" \| "material" \| "creation" \| "location" \| "action" \| "extension"/);
+  assert.match(memoFacts, /높이\\s\*\(\?:점프\|뛰\)/);
+  assert.match(memoFacts, /멀리\\s\*\(\?:점프\|뛰\)/);
   for (const phrase of ["서로 살펴보며", "생각을 나누며", "느낌을 나누며", "상상력을 발휘하며", "서로의 작품을 감상하며"]) {
     assert.match(forbidden, new RegExp(phrase));
   }

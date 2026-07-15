@@ -1,4 +1,5 @@
 import type { PlaypanelExample } from "./selectExamples";
+import { analyzeMemo, formatMemoChecklist } from "./memoFacts";
 
 export function buildDescriptionInstruction(
   memo: string,
@@ -6,6 +7,7 @@ export function buildDescriptionInstruction(
   retryReason?: string,
   styleName = "따뜻한 부모 공개용"
 ): string {
+  const memoAnalysis = analyzeMemo(memo);
   const fewShot = examples
     .map(
       (e, i) =>
@@ -18,6 +20,9 @@ export function buildDescriptionInstruction(
 
 [핵심 원칙]
 - 메모에서 놀이 재료, 과정, 확장, 계절, 그림책 여부를 파악합니다.
+- 아래 핵심 사실 체크리스트의 항목을 하나도 생략하지 않습니다.
+- 메모에 그림책 → 만들기 → 장소 이동 → 놀이 행동 → 게임 확장처럼 순서가 있으면 그 순서를 유지합니다.
+- 놀이가 여러 단계라면 대표 활동 하나만 고르거나 단순화하지 말고 가능한 모든 단계를 3문장 안에 자연스럽게 연결합니다.
 - 메모에서는 확인 가능한 사실만 사용하고 원문 문장 구조는 가져오지 않습니다.
 - 메모에 없는 행동, 상호작용, 대화, 감상, 유아의 생각이나 심리를 추측해 추가하지 않습니다.
 - 친구와 이야기하거나 작품을 함께 본 사실이 메모에 없으면 '서로 살펴보며', '생각·느낌·의견을 나누며', '작품을 감상하며' 같은 상호작용을 만들지 않습니다.
@@ -35,6 +40,9 @@ ${styleName}
 
 [사용자 메모]
 ${memo}
+
+[반드시 반영할 핵심 사실 체크리스트]
+${formatMemoChecklist(memoAnalysis)}
 
 ${fewShot}
 

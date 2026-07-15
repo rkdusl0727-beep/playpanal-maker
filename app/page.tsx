@@ -5,6 +5,7 @@ import { selectPlayPanelFewShots } from "./play-panel-few-shots";
 import type { PlayPanelFewShot } from "./play-panel-few-shots";
 import { generatePlaypanel, regenerateDescription, playpanelGenerationStyles, type ModelCaller } from "../src/playpanel-ai/lib/generatePlaypanel";
 import { validatePlaypanel } from "../src/playpanel-ai/lib/styleChecker";
+import { analyzeMemo, validateMemoCoverage, type MemoFactCategory } from "../src/playpanel-ai/lib/memoFacts";
 
 type Photo = { src: string; x: number; y: number } | null;
 type PptxConstructor = new () => any;
@@ -169,8 +170,67 @@ const removeTitleLead = (description: string, title: string) => {
   return description.replace(new RegExp(`^\\s*${escaped}\\s*[,.:·-]?\\s*`, "i"), "").trim();
 };
 
+const objectParticle = (word: string) => {
+  const clean = word.trim();
+  if (!clean) return clean;
+  const last = clean.charCodeAt(clean.length - 1);
+  const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
+  return `${clean}${hasBatchim ? "을" : "를"}`;
+};
+
+const localFactLabel = (value: string) => value
+  .replace(/^(?:그리고|그다음|이후|후에)\s*/, "")
+  .replace(/(?:해봄|해보았음|했음|있음|나타남|관찰함|표현함|놀이함|함)[.!?]?$/g, "")
+  .trim();
+
+// 메모에 여러 단계가 적힌 경우 대표 놀이 하나만 고르지 않고
+// 그림책 → 만들기 → 장소 → 행동 → 확장의 순서를 3문장 안에 보존한다.
+const makeCoverageAwareDescription = (note: string) => {
+  const analysis = analyzeMemo(note);
+  if (analysis.facts.length < 3) return "";
+
+  const factsOf = (category: MemoFactCategory) =>
+    analysis.facts.filter((fact) => fact.category === category);
+  const book = factsOf("pictureBook")[0]?.label || "";
+  const creations = factsOf("creation").map((fact) => localFactLabel(fact.label));
+  const materials = factsOf("material").map((fact) => fact.label);
+  const location = factsOf("location")[0]?.label || "";
+  const actions = factsOf("action").map((fact) => {
+    if (/높이\s*(?:점프|뛰)/.test(fact.label)) return "높이 점프";
+    if (/멀리\s*(?:점프|뛰)/.test(fact.label)) return "멀리 점프";
+    if (/눈을\s*감/.test(fact.label) && /맞히|맞추/.test(fact.label)) return "눈을 감고 맞히기";
+    return localFactLabel(fact.label);
+  });
+  const extension = factsOf("extension")[0]?.label || "";
+
+  const bookTitle = book
+    .replace(/(?:그림책|동화책|책)\s*(?:함께\s*)?(?:읽기|읽고|읽어.*)?$/g, "")
+    .trim();
+  const creationText = [...new Set(creations)].filter(Boolean).join("과 ");
+  const materialText = [...new Set(materials)].filter((item) => !materials.some((other) => other !== item && other.includes(item))).join("과 ");
+
+  const first = book
+    ? `${bookTitle ? `「${bookTitle}」 ` : ""}그림책을 함께 읽고${creationText ? ` ${objectParticle(creationText)} 만들어 보았습니다` : " 놀이 장면을 살펴보았습니다"}.`
+    : `${materialText ? `${objectParticle(materialText)} 활용해 ` : ""}${creationText ? objectParticle(creationText) : "메모에 담긴 놀이 자료를"} 차근차근 만들어 보았어요.`;
+
+  const distinctActions = [...new Set(actions)].filter(Boolean);
+  const actionText = distinctActions.length > 1
+    ? `${distinctActions.slice(0, -1).join(", ")}와 ${distinctActions.at(-1)}`
+    : distinctActions[0] || "기록한 놀이";
+  const second = `${location ? `${location}에서 ` : ""}${objectParticle(actionText)} 차례로 시도하며 놀이를 이어 갔답니다.`;
+
+  const extensionName = /게임/.test(extension) ? "게임" : /가게/.test(extension) ? "가게놀이" : /역할/.test(extension) ? "역할놀이" : /전시|게시/.test(extension) ? "전시" : "다음 놀이";
+  const third = extension
+    ? `${actionText}가 ${extensionName}으로 이어지며${location ? ` ${location}에서` : ""} 앞서 시작한 놀이가 계속되었어요.`
+    : `${creationText || actionText}이 완성되며${location ? ` ${location}에` : ""} 오늘의 놀이 장면이 남았어요.`;
+
+  return finalizeDescription(`${first} ${second} ${third}`);
+};
+
 const naturalizeNoteBase = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
+  const coverageAware = makeCoverageAwareDescription(note);
+  if (coverageAware && /그림책|확장|게임|역할놀이|가게놀이|전시|공동작품|협동작품|합동그림/.test(note)) return coverageAware;
   if (/장마/.test(context) && /물방울/.test(context) && /종이접기|색종이|접기/.test(context)) {
     const displayed = /창가|창문|붙여|게시/.test(context);
     return displayed
@@ -699,7 +759,12 @@ const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex:
   const factualStory = preserveMemoCore(note, naturalizeNoteBase(note, title));
   const preferredClosing = Math.max(0, (fewShots[0]?.closingPerspective || 1) - 1);
   const closingVariant = preferredClosing + playIndex + styleIndex;
-  const description = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, closingVariant), title));
+  let description = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, closingVariant), title));
+  const coverage = validateMemoCoverage(note, description);
+  if (!coverage.ok) {
+    const coverageAware = makeCoverageAwareDescription(note);
+    if (coverageAware && validateMemoCoverage(note, coverageAware).ok) description = coverageAware;
+  }
   return { title, description, facts, fewShots };
 };
 

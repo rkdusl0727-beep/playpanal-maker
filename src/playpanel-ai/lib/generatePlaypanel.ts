@@ -1,6 +1,7 @@
 import { selectExamples } from "./selectExamples";
 import { buildDescriptionInstruction, buildRegenerationInstruction } from "./generateDescription";
 import { validatePlaypanel } from "./styleChecker";
+import { validateMemoCoverage } from "./memoFacts";
 
 export const playpanelGenerationStyles = [
   "따뜻한 부모 공개용",
@@ -71,9 +72,14 @@ export async function generatePlaypanel(
       const result: PlaypanelResult = { ...parsed, validationPassed: false, styleIndex };
       lastResult = result;
       const validation = validatePlaypanel(result.title, result.description);
+      const coverage = validateMemoCoverage(memo, result.description);
 
-      if (validation.ok) return { ...result, validationPassed: true };
-      retryReason = validation.errors.join("\n- ");
+      if (validation.ok && coverage.ok) return { ...result, validationPassed: true };
+      const missingFacts = coverage.missing.map((fact) => fact.label);
+      retryReason = [
+        ...validation.errors,
+        ...(missingFacts.length ? [`메모의 핵심 내용이 누락되었습니다: ${missingFacts.join(" / ")}. 모든 항목을 메모 순서대로 반영하세요.`] : []),
+      ].join("\n- ");
     } catch (error) {
       retryReason = error instanceof Error ? error.message : "모델 출력을 확인할 수 없습니다.";
     }
@@ -109,8 +115,13 @@ export async function regenerateDescription({
         continue;
       }
       const validation = validatePlaypanel(title, description);
-      if (validation.ok) return { ...result, validationPassed: true };
-      retryReason = validation.errors.join("\n- ");
+      const coverage = validateMemoCoverage(memo, description);
+      if (validation.ok && coverage.ok) return { ...result, validationPassed: true };
+      const missingFacts = coverage.missing.map((fact) => fact.label);
+      retryReason = [
+        ...validation.errors,
+        ...(missingFacts.length ? [`메모의 핵심 내용이 누락되었습니다: ${missingFacts.join(" / ")}. 제목은 유지하고 설명에 모든 항목을 순서대로 반영하세요.`] : []),
+      ].join("\n- ");
     } catch (error) {
       retryReason = error instanceof Error ? error.message : "모델 출력을 확인할 수 없습니다.";
     }
