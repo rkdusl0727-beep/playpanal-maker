@@ -68,6 +68,18 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(page, /!audit\.copiedFewShot/);
   assert.match(page, /repeatedAcrossPanel/);
   assert.match(page, /① 사실 추출 → ② 관련 예시 1~3개 선택/);
+  assert.match(page, /⑤ 놀이패널 스타일 검사 → ⑥ AI 표현 검사/);
+  assert.match(page, /const playPanelStyleIssues/);
+  assert.match(page, /playSceneVisible/);
+  assert.match(page, /notReportOrDailyLog/);
+  assert.match(page, /processCentered/);
+  assert.match(page, /notResultOnly/);
+  assert.match(page, /lingeringPlayEnding/);
+  assert.match(page, /playPanelStyle/);
+  assert.match(page, /보고서나 활동일지 표현 대신 놀이패널 문체/);
+  assert.match(page, /놀이 결과보다 선택하고 탐색하고 이어 가는 과정을 중심/);
+  assert.match(page, /마지막 문장은 교육 효과가 아니라 놀이 장면의 따뜻한 여운/);
+  assert.match(page, /형식적이거나 AI스러운 표현 대신 담임교사의 자연스러운 기록/);
   assert.match(page, /장마를 담은 물방울/);
   assert.match(page, /비가 이어지는 장마 풍경을 떠올리며/);
   assert.match(page, /restateCopiedMemo/);

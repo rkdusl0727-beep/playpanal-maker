@@ -463,6 +463,37 @@ const copiesMemoStructure = (note: string, value: string) => {
     .some(window => outputWindows.has(window));
 };
 
+const PLAY_SCENE_ACTION_PATTERN = /고르|골라|살펴|바라|만지|접어|접고|오려|붙이|그리|칠하|쌓아|연결|놓아|바꾸|다듬|누르|불어|섞어|찍어|움직|들어|나가|만들|꾸미|이어|완성/;
+const PLAY_SCENE_DETAIL_PATTERN = /색|모양|선|무늬|소리|감촉|향기|빛깔|거리|방향|크기|장면|풍경|작품|교실|창가|정원|바닥|종이|물감|블록|클레이|자연물|그림책/;
+const REPORT_STYLE_PATTERN = /활동을\s*(?:실시|진행)|교육적\s*효과|학습\s*목표|관찰\s*결과|평가하|지도하|유도하|제공하|참여하였|발달시켰|능력을\s*기르|도모하/;
+const RESULT_ONLY_PATTERN = /(?:완성|제작|만들었|꾸몄)(?:습니다|어요|답니다)[.!?]\s*(?:완성|제작|만들었|꾸몄)/;
+const EDUCATIONAL_END_PATTERN = /교육|학습|발달|능력|효과|목표|기르|향상|증진|배웠|알게\s*되|깨달|도움이\s*되/;
+const PLAY_LINGERING_END_PATTERN = /바라보|살펴보|나누|머물|펼쳐|번지|번졌|이어졌|시작되|가득해|내려앉|어우러|웃음|미소|뿌듯|여운|풍경|장면|교실|창가|감상|마무리/;
+
+const playPanelStyleIssues = (value: string, note = "") => {
+  const sentences = value.trim().split(/(?<=[.!?])\s+/).filter(Boolean);
+  const processText = sentences.slice(0, 2).join(" ");
+  const lastSentence = sentences.at(-1) || "";
+  const actionMatches = processText.match(new RegExp(PLAY_SCENE_ACTION_PATTERN.source, "g"))?.length ?? 0;
+  const noteFacts = memoTokens(note).filter(token => token.length >= 2);
+  const reflectedFacts = noteFacts.filter(token => normalizedMemoText(value).includes(normalizedMemoText(token))).length;
+  const issues: string[] = [];
+
+  if (actionMatches < 2 || !PLAY_SCENE_DETAIL_PATTERN.test(processText) || (noteFacts.length > 0 && reflectedFacts === 0)) {
+    issues.push("부모가 실제 놀이 장면을 떠올릴 수 있도록 재료와 행동을 구체적으로 작성해 주세요");
+  }
+  if (REPORT_STYLE_PATTERN.test(value)) issues.push("보고서나 활동일지 표현 대신 놀이패널 문체로 작성해 주세요");
+  if (actionMatches < 2) issues.push("놀이 결과보다 선택하고 탐색하고 이어 가는 과정을 중심으로 작성해 주세요");
+  if (RESULT_ONLY_PATTERN.test(value)) issues.push("완성 결과를 나열하지 말고 놀이가 이어진 과정을 보여 주세요");
+  if (EDUCATIONAL_END_PATTERN.test(lastSentence) || !PLAY_LINGERING_END_PATTERN.test(lastSentence)) {
+    issues.push("마지막 문장은 교육 효과가 아니라 놀이 장면의 따뜻한 여운으로 마무리해 주세요");
+  }
+  if (AI_CLICHE_PATTERN.test(value) || /본\s*활동|이를\s*통해|종합적으로|효과적으로|적극적으로\s*참여/.test(value)) {
+    issues.push("형식적이거나 AI스러운 표현 대신 담임교사의 자연스러운 기록으로 작성해 주세요");
+  }
+  return issues;
+};
+
 const panelDescriptionIssues = (value: string, note = "") => {
   const text = value.trim();
   const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
@@ -478,6 +509,7 @@ const panelDescriptionIssues = (value: string, note = "") => {
   if (AI_CLICHE_PATTERN.test(text)) issues.push("금지된 AI 문구와 유사한 표현은 사용할 수 없습니다");
   if (/(?:해봄|해보았음|볼\s*수\s*있었음|나타남|관찰함|표현함|놀이함|했음|있음|함)(?:[.!?]|$)/.test(text)) issues.push("메모체 종결은 사용할 수 없습니다");
   if (note && copiesMemoStructure(note, text)) issues.push(`입력은 메모입니다. 문장 구조를 복사하지 말고 ${PANEL_WRITING_ROLE}으로 새롭게 재서술해 주세요`);
+  issues.push(...playPanelStyleIssues(text, note));
   return issues;
 };
 
@@ -507,6 +539,10 @@ const copiesFewShotExpression = (description: string, fewShots: PlayPanelFewShot
 const auditGeneratedPanel = (note: string, title: string, description: string, existingDescriptions: string[] = [], fewShots: PlayPanelFewShot[] = []) => {
   const descriptionIssues = panelDescriptionIssues(description, note);
   const titleIssues = panelTitleIssues(title, note);
+  const styleIssues = playPanelStyleIssues(description, note);
+  const sentences = description.trim().split(/(?<=[.!?])\s+/).filter(Boolean);
+  const processText = sentences.slice(0, 2).join(" ");
+  const lastSentence = sentences.at(-1) || "";
   const previousSentences = new Set(existingDescriptions.flatMap(normalizedSentences));
   const repeatedAcrossPanel = normalizedSentences(description).some(sentence => previousSentences.has(sentence));
   return {
@@ -514,10 +550,17 @@ const auditGeneratedPanel = (note: string, title: string, description: string, e
     summarizedMemo: memoStructureSimilarity(note, description) >= 0.3,
     copiedFewShot: copiesFewShotExpression(description, fewShots),
     parentFacingPanel: descriptionIssues.length === 0,
+    playSceneVisible: PLAY_SCENE_ACTION_PATTERN.test(processText) && PLAY_SCENE_DETAIL_PATTERN.test(processText),
+    notReportOrDailyLog: !REPORT_STYLE_PATTERN.test(description),
+    processCentered: (processText.match(new RegExp(PLAY_SCENE_ACTION_PATTERN.source, "g"))?.length ?? 0) >= 2,
+    notResultOnly: !RESULT_ONLY_PATTERN.test(description),
+    lingeringPlayEnding: !EDUCATIONAL_END_PATTERN.test(lastSentence) && PLAY_LINGERING_END_PATTERN.test(lastSentence),
+    playPanelStyle: styleIssues.length === 0,
     teacherNaturalness: !AI_CLICHE_PATTERN.test(description) && !/(?:해봄|했음|있음|나타남|관찰함|표현함|놀이함|함)(?:[.!?]|$)/.test(description),
     repeatedAcrossPanel,
     freshPanelTitle: titleIssues.length === 0,
     descriptionIssues,
+    styleIssues,
     titleIssues,
   };
 };
@@ -592,9 +635,9 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
 };
 
 const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex: number, existingDescriptions: string[] = []) => {
-  // ① 사실 추출 → ② 관련 예시 1~3개 선택 → ③ 문체·분위기만 참고
-  // ④ 새 제목·설명 생성 → ⑤ 메모·예시 복사 검사 → ⑥ 상투 표현 검사
-  // ⑦ 부모 공개용 문체 → ⑧ 150~180자 → ⑨ 최종 출력
+  // ① 사실 추출 → ② 관련 예시 1~3개 선택(문체·분위기만 참고) → ③ 새 제목 생성
+  // ④ 놀이패널 생성 → ⑤ 놀이패널 스타일 검사 → ⑥ AI 표현 검사
+  // ⑦ 메모·예시 유사도 검사 → ⑧ 150~180자 검사 → ⑨ 최종 출력
   const facts = extractMemoFacts(note);
   const fewShots = selectPlayPanelFewShots(note, 3);
   const title = makeNewspaperTitle(note, "", isBookPlay);
@@ -615,6 +658,12 @@ const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex:
     && !audit.summarizedMemo
     && !audit.copiedFewShot
     && audit.parentFacingPanel
+    && audit.playSceneVisible
+    && audit.notReportOrDailyLog
+    && audit.processCentered
+    && audit.notResultOnly
+    && audit.lingeringPlayEnding
+    && audit.playPanelStyle
     && audit.teacherNaturalness
     && !audit.repeatedAcrossPanel
     && audit.freshPanelTitle,
