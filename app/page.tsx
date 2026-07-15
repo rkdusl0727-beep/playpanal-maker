@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { selectPlayPanelFewShots } from "./play-panel-few-shots";
 
 type Photo = { src: string; x: number; y: number } | null;
 type PptxConstructor = new () => any;
@@ -488,14 +489,22 @@ const panelTitleIssues = (value: string, note = "") => {
   return issues;
 };
 
-const auditGeneratedPanel = (note: string, title: string, description: string) => {
+const normalizedSentences = (value: string) => value
+  .split(/(?<=[.!?])\s+/)
+  .map(sentence => normalizedMemoText(sentence))
+  .filter(sentence => sentence.length >= 12);
+
+const auditGeneratedPanel = (note: string, title: string, description: string, existingDescriptions: string[] = []) => {
   const descriptionIssues = panelDescriptionIssues(description, note);
   const titleIssues = panelTitleIssues(title, note);
+  const previousSentences = new Set(existingDescriptions.flatMap(normalizedSentences));
+  const repeatedAcrossPanel = normalizedSentences(description).some(sentence => previousSentences.has(sentence));
   return {
     copiedInput: copiesMemoStructure(note, description),
     summarizedMemo: memoStructureSimilarity(note, description) >= 0.3,
     parentFacingPanel: descriptionIssues.length === 0,
     teacherNaturalness: !AI_CLICHE_PATTERN.test(description) && !/(?:해봄|했음|있음|나타남|관찰함|표현함|놀이함|함)(?:[.!?]|$)/.test(description),
+    repeatedAcrossPanel,
     freshPanelTitle: titleIssues.length === 0,
     descriptionIssues,
     titleIssues,
@@ -571,29 +580,35 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   return "오늘 함께한 놀이 이야기";
 };
 
-const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex: number) => {
+const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex: number, existingDescriptions: string[] = []) => {
   // 오늘의 메모 → 사실만 추출 → 새 제목 → 교사 초안 → 자동 검사 → 최종 출력
   const facts = extractMemoFacts(note);
+  const fewShots = selectPlayPanelFewShots(note, 3);
   const title = makeNewspaperTitle(note, "", isBookPlay);
   const factualStory = preserveMemoCore(note, naturalizeNoteBase(note, title));
   const candidates: string[] = [];
+  const preferredClosing = Math.max(0, (fewShots[0]?.closingPerspective || 1) - 1);
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    candidates.push(fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, playIndex + attempt), title)));
-    candidates.push(fitDescriptionToPanel(restateCopiedMemo(note, playIndex + attempt)));
+    const closingVariant = preferredClosing + playIndex + attempt;
+    candidates.push(fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, closingVariant), title)));
+    candidates.push(fitDescriptionToPanel(restateCopiedMemo(note, closingVariant)));
   }
+  const exactFewShot = fewShots.find(example => normalizedMemoText(example.memo) === normalizedMemoText(note));
+  if (exactFewShot) candidates.unshift(exactFewShot.description);
 
   const audited = candidates
     .filter(Boolean)
-    .map(description => ({ description, audit: auditGeneratedPanel(note, title, description) }));
+    .map(description => ({ description, audit: auditGeneratedPanel(note, title, description, existingDescriptions) }));
   const passed = audited.find(({ audit }) =>
     !audit.copiedInput
     && !audit.summarizedMemo
     && audit.parentFacingPanel
     && audit.teacherNaturalness
+    && !audit.repeatedAcrossPanel
     && audit.freshPanelTitle,
   );
-  if (passed) return { title, description: passed.description, facts, audit: passed.audit };
+  if (passed) return { title, description: passed.description, facts, fewShots, audit: passed.audit };
 
   // 모든 검사를 통과한 문장이 없으면 오류가 가장 적은 교사 재서술안을 제시하되,
   // 승인 버튼은 기존 검증 규칙에 의해 활성화되지 않는다.
@@ -601,7 +616,7 @@ const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex:
     (a.audit.descriptionIssues.length + a.audit.titleIssues.length)
     - (b.audit.descriptionIssues.length + b.audit.titleIssues.length),
   )[0];
-  return { title, description: best?.description || "", facts, audit: best?.audit };
+  return { title, description: best?.description || "", facts, fewShots, audit: best?.audit };
 };
 
 const withAnd = (word: string) => {
@@ -840,7 +855,11 @@ export default function Home() {
     if (!note.trim()) return;
     setPlays(current => current.map((p, i) => {
       if (i !== idx) return p;
-      const generated = generateTeacherPanelDraft(note, p.isBookPlay, idx);
+      const existingDescriptions = current
+        .filter((_, playIndex) => playIndex !== idx)
+        .map(play => play.publishedDescription || play.description)
+        .filter(Boolean);
+      const generated = generateTeacherPanelDraft(note, p.isBookPlay, idx, existingDescriptions);
       return { ...p, note, title: generated.title, description: generated.description, approved: false };
     }));
   };

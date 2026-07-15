@@ -42,6 +42,7 @@ test("includes durable persistence and calendar logic", async () => {
 
 test("locks parent-facing play descriptions to the approved writing rules", async () => {
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const fewShots = await readFile(new URL("app/play-panel-few-shots.ts", root), "utf8");
   assert.match(page, /text\.length < 150 \|\| text\.length > 180/);
   assert.match(page, /sentences\.length !== 3/);
   assert.match(page, /panelTitleIssues/);
@@ -62,6 +63,8 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(page, /memoStructureSimilarity\(note, description\) >= 0\.3/);
   assert.match(page, /extractMemoFacts/);
   assert.match(page, /generateTeacherPanelDraft/);
+  assert.match(page, /selectPlayPanelFewShots\(note, 3\)/);
+  assert.match(page, /repeatedAcrossPanel/);
   assert.match(page, /오늘의 메모 → 사실만 추출 → 새 제목 → 교사 초안 → 자동 검사 → 최종 출력/);
   assert.match(page, /장마를 담은 물방울/);
   assert.match(page, /장마철 창밖으로 떨어지는 빗방울을 살펴본 뒤/);
@@ -72,4 +75,7 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.doesNotMatch(page, /return "색과 선으로 펼친 우리 생각"/);
   assert.doesNotMatch(page, /return "생각을 모아 만든 우리 세상"/);
   assert.doesNotMatch(page, /재료와 방법을 스스로 선택해 표현하는 모습/);
+  assert.ok((fewShots.match(/closingPerspective:/g) || []).length >= 20, "Few-shot examples must include at least 20 real panel patterns");
+  assert.match(fewShots, /export const selectPlayPanelFewShots/);
+  assert.doesNotMatch(fewShots, /상상력과 표현력을 넓혀 나갔습니다|재료의 특성을 탐색하며/);
 });
