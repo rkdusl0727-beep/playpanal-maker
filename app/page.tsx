@@ -319,6 +319,31 @@ const playClosingSentence = (note: string) => {
   return "놀이에서 발견한 모습을 차근차근 살펴보며 저마다의 방법으로 놀이를 이어 갈 수 있었어요.";
 };
 
+const restateCopiedMemo = (note: string) => {
+  const materials = ["클레이", "휴지심", "색종이", "자연물", "분필", "물감", "우드락", "연필", "블록", "악기", "페트병", "크레파스", "습자지"]
+    .filter(material => note.includes(material)).slice(0, 3);
+  const result = [
+    [/아이스크림/, "아이스크림"], [/아이스바/, "아이스바"], [/팥빙수|빙수/, "팥빙수"], [/물방울/, "물방울"],
+    [/판화/, "판화"], [/모빌/, "모빌"], [/물총/, "물총"], [/여름\s*풍경/, "여름 풍경"], [/소리/, "소리 놀이"],
+    [/그림/, "그림"], [/쌓기|블록/, "블록 공간"],
+  ].find(([pattern]) => (pattern as RegExp).test(note))?.[1] as string | undefined;
+  if (!materials.length && !result) return "";
+  const materialText = materials.length ? materials.join("·") : "놀이 재료";
+  const resultText = result || "놀이 작품";
+  const asObject = (word: string) => {
+    const code = word.charCodeAt(word.length - 1);
+    const hasBatchim = code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
+    return `${word}${hasBatchim ? "을" : "를"}`;
+  };
+  const first = /그림책|책을\s*읽/.test(note)
+    ? `그림책을 함께 읽은 뒤 ${asObject(materialText)} 활용해 ${resultText}에 떠오른 장면을 담아 보았습니다.`
+    : `${asObject(materialText)} 손끝으로 살펴보며 ${asObject(resultText)} 차근차근 만들어 보았습니다.`;
+  const second = /친구|함께|협동|짝/.test(note)
+    ? `모양과 쓰임을 하나둘 맞추어 가고 친구의 표현과 어우러지도록 놀이를 이어 가는 모습이 보였답니다.`
+    : `재료를 만지고 모양을 다듬는 과정을 거치며 떠오른 모습을 정성껏 완성해 가는 모습이 보였답니다.`;
+  return dedupeSentences(`${first} ${second} ${playClosingSentence(note)}`);
+};
+
 const formalizePanelSentence = (sentence: string) => sentence
   .replace(/[.!?]+$/, "")
   .replace(/해\s*보았어요$/g, "해 보았습니다")
@@ -357,6 +382,9 @@ const toPanelDescription = (note: string, story: string) => {
   if (/클레이/.test(note) && /아이스크림/.test(note) && /휴지심/.test(note) && /아이스바/.test(note)) {
     return "아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 장식과 무늬를 더하며 저마다의 여름 디저트를 완성했답니다. 손끝으로 모양을 만들어 가며 각자의 생각을 담아 표현하는 즐거움을 느껴 볼 수 있었어요.";
   }
+  if (/클레이/.test(note) && /아이스크림/.test(note)) {
+    return "아이들은 말랑말랑한 클레이를 조물조물 만지며 시원한 아이스크림 모양을 만들어 보았습니다. 손끝으로 크기와 모양을 차근차근 다듬고 장식을 더해, 저마다 떠올린 아이스크림을 완성하는 모습이 보였답니다. 완성된 모양을 하나둘 살펴보며 생각을 작품으로 이어 가는 즐거움을 느껴 볼 수 있었어요.";
+  }
   const sentences = dedupeSentences(story).split(/(?<=[.!?])\s+/).filter(Boolean);
   const first = `${formalizePanelSentence(sentences[0] || note)}.`;
   const secondSource = sentences[1] || sentences[0] || note;
@@ -365,7 +393,20 @@ const toPanelDescription = (note: string, story: string) => {
   return dedupeSentences(`${first} ${second} ${third}`);
 };
 
-const panelDescriptionIssues = (value: string) => {
+const normalizedMemoText = (value: string) => value
+  .replace(/(?:해봄|해보았음|했음|있음|나타남|관찰함|표현함|놀이함|만들기|만들었음|함)/g, "")
+  .replace(/[^가-힣A-Za-z0-9]/g, "");
+
+const copiesMemoStructure = (note: string, value: string) => {
+  const output = normalizedMemoText(value);
+  return note
+    .split(/[\n,.!?]+/)
+    .map(part => normalizedMemoText(part))
+    .filter(part => part.length >= 14)
+    .some(part => output.includes(part));
+};
+
+const panelDescriptionIssues = (value: string, note = "") => {
   const text = value.trim();
   const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
   const issues: string[] = [];
@@ -379,14 +420,16 @@ const panelDescriptionIssues = (value: string) => {
   if (/교육적 효과|학습 목표|발달시켰다/.test(text)) issues.push("딱딱한 교육 용어는 사용할 수 없습니다");
   if (/재료의 특성을 탐색하며|상상력과 표현력을 넓혀 나갔습니다|자신만의 .{0,20} 표현했습니다/.test(text)) issues.push("반복적인 AI 문구 대신 실제 놀이 장면을 작성해 주세요");
   if (/(?:해봄|해보았음|볼\s*수\s*있었음|나타남|관찰함|표현함|놀이함|했음|있음|함)(?:[.!?]|$)/.test(text)) issues.push("메모체 종결은 사용할 수 없습니다");
+  if (note && copiesMemoStructure(note, text)) issues.push("메모 문장을 이어 쓰지 말고 새로운 문장으로 재서술해 주세요");
   return issues;
 };
 
-const panelTitleIssues = (value: string) => {
+const panelTitleIssues = (value: string, note = "") => {
   const title = value.trim().replace(/\s+/g, " ");
   const issues: string[] = [];
   if (title.length < 8 || title.length > 16) issues.push("제목은 8~16자로 작성해 주세요");
   if (/색과 선으로 펼친 우리 생각|생각을 담다|즐거운 표현|상상의 세계|창의력을 키워요|생각을 모아 만든 우리 세상/.test(title)) issues.push("재료·계절·놀이 결과가 보이는 제목으로 작성해 주세요");
+  if (note && normalizedMemoText(note).startsWith(normalizedMemoText(title))) issues.push("메모를 축약하지 말고 놀이패널 제목으로 새롭게 작성해 주세요");
   return issues;
 };
 
@@ -404,7 +447,10 @@ const preserveMemoCore = (note: string, story: string) => {
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
   const source = `${note} ${currentTitle}`.replace(/\s+/g, " ");
-  if (/클레이/.test(source) && /아이스크림/.test(source) && /휴지심/.test(source) && /아이스바/.test(source)) return "달콤한 여름 디저트";
+  if (/클레이/.test(source) && /아이스크림/.test(source)) return "달콤한 여름 디저트";
+  if (/팥빙수|오레오\s*빙수/.test(source)) return "그림책 속 시원한 팥빙수";
+  if (/장마/.test(source) && /물방울/.test(source)) return "장마를 담은 물방울";
+  if (/자연물/.test(source) && /디저트|아이스크림|빙수/.test(source)) return "자연물로 꾸민 여름 디저트";
   if (/모자이크/.test(source) && /모빌/.test(source) && /물방울/.test(source)) return "알록달록 모자이크 물방울 모빌";
   if (/모자이크/.test(source) && /모빌/.test(source)) return "알록달록 색종이 모자이크 모빌";
   if (/우드락|판화|찍어내/.test(source) && /소리/.test(source)) return "여름 소리를 찍어낸 우드락 판화";
@@ -691,13 +737,19 @@ export default function Home() {
       if (i !== idx) return p;
       const generatedTitle = makeNewspaperTitle(note, "", p.isBookPlay);
       const memoStory = preserveMemoCore(note, naturalizeNoteBase(note, generatedTitle));
-      const generatedDescription = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, memoStory), generatedTitle));
+      let generatedDescription = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, memoStory), generatedTitle));
+      // 생성 결과가 메모의 긴 문장을 그대로 포함하면 한 번 더 교사 문체로 재서술한다.
+      if (copiesMemoStructure(note, generatedDescription)) {
+        const restated = restateCopiedMemo(note);
+        if (restated) generatedDescription = fitDescriptionToPanel(restated);
+      }
       return { ...p, note, title: generatedTitle, description: generatedDescription, approved: false };
     }));
   };
   const publishDraft = (idx: number, title: string, description: string) => {
     const completedDescription = fitDescriptionToPanel(removeTitleLead(description, title));
-    if (panelTitleIssues(title).length || panelDescriptionIssues(completedDescription).length) return;
+    const note = plays[idx]?.note || "";
+    if (panelTitleIssues(title, note).length || panelDescriptionIssues(completedDescription, note).length) return;
     const next = plays.map((play, i) => i === idx ? { ...play, title, description: completedDescription, publishedTitle: title, publishedDescription: completedDescription, approved: true } : play);
     setPlays(next);
     if (next.every(play => play.approved)) setWeeklyLearning(makeWeeklyLearning(next, theme));
@@ -710,10 +762,10 @@ export default function Home() {
     if (!start || !end) items.push("놀이 기간");
     plays.forEach((p, i) => {
       if (!p.title.trim()) items.push(`${i + 1}번 놀이 제목`);
-      else if (panelTitleIssues(p.title).length) items.push(`${i + 1}번 놀이 제목 8~16자 확인`);
+      else if (panelTitleIssues(p.title, p.note).length) items.push(`${i + 1}번 놀이 제목 확인`);
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
       else {
-        const descriptionIssues = panelDescriptionIssues(p.description);
+        const descriptionIssues = panelDescriptionIssues(p.description, p.note);
         if (descriptionIssues.length) items.push(`${i + 1}번 놀이 설명 규칙 확인`);
       }
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
@@ -992,7 +1044,7 @@ export default function Home() {
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지 업로드</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload book-drop-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>dropBookCover(e,pi)}><span>{p.bookCover?"그림책 표지 수정 · 클릭 또는 드래그":"클릭 또는 드래그해서 업로드"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>놀이 메모 <span className="memo-guide">메모를 적고 <kbd>Enter</kbd>를 누르면 제목과 설명이 만들어집니다 <i>·</i> 줄바꿈은 <kbd>Shift + Enter</kbd></span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,title:"",description:"",publishedTitle:"",publishedDescription:"",approved:false})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing)e.preventDefault()}} onKeyUp={e=>{if(e.key==="Enter"&&!e.shiftKey)generateFromNote(pi,e.currentTarget.value)}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목 <span className="description-guide">8~16자 ({p.title.trim().length}자)</span><input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label>{panelTitleIssues(p.title).length>0&&<p className="description-rule-error">{panelTitleIssues(p.title).join(" · ")}</p>}<label>놀이 설명 <span className="description-guide">부모 공개용 3문장 · 150~180자 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToPanel(e.currentTarget.value),approved:false})}/></label>{panelDescriptionIssues(p.description).length>0&&<p className="description-rule-error">{panelDescriptionIssues(p.description).join(" · ")}</p>}<button className={p.approved?"approved":"approve"} disabled={p.approved||panelTitleIssues(p.title).length>0||panelDescriptionIssues(p.description).length>0} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
+        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목 <span className="description-guide">8~16자 ({p.title.trim().length}자)</span><input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label>{panelTitleIssues(p.title,p.note).length>0&&<p className="description-rule-error">{panelTitleIssues(p.title,p.note).join(" · ")}</p>}<label>놀이 설명 <span className="description-guide">부모 공개용 3문장 · 150~180자 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToPanel(e.currentTarget.value),approved:false})}/></label>{panelDescriptionIssues(p.description,p.note).length>0&&<p className="description-rule-error">{panelDescriptionIssues(p.description,p.note).join(" · ")}</p>}<button className={p.approved?"approved":"approve"} disabled={p.approved||panelTitleIssues(p.title,p.note).length>0||panelDescriptionIssues(p.description,p.note).length>0} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
         <div className="photo-count-row"><p className="mini-label">Shift로 여러 장을 선택하면 선택한 칸부터 순서대로 채워집니다</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 4|6|8})}><option value={4}>4장</option><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si} draggable onDragStart={e=>startPhotoOrderDrag(e,pi,si)} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move"}} onDrop={e=>dropPhotoOrder(e,pi,si)} onDragEnd={()=>{orderDragRef.current=null}}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden multiple type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>

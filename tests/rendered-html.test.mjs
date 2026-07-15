@@ -55,6 +55,10 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(page, /알록달록 꾸미기 놀이/);
   assert.match(page, /재료·계절·놀이 결과가 보이는 제목/);
   assert.match(page, /반복적인 AI 문구 대신 실제 놀이 장면/);
+  assert.match(page, /copiesMemoStructure/);
+  assert.match(page, /restateCopiedMemo/);
+  assert.match(page, /메모 문장을 이어 쓰지 말고 새로운 문장으로 재서술/);
+  assert.match(page, /메모를 축약하지 말고 놀이패널 제목으로 새롭게 작성/);
   assert.doesNotMatch(page, /return "색과 선으로 펼친 우리 생각"/);
   assert.doesNotMatch(page, /return "생각을 모아 만든 우리 세상"/);
   assert.doesNotMatch(page, /재료와 방법을 스스로 선택해 표현하는 모습/);
