@@ -161,7 +161,7 @@ const removeTitleLead = (description: string, title: string) => {
   return description.replace(new RegExp(`^\\s*${escaped}\\s*[,.:·-]?\\s*`, "i"), "").trim();
 };
 
-const naturalizeNote = (note: string, playTitle: string) => {
+const naturalizeNoteBase = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
   if (/모자이크/.test(context) && /(모빌|교실\s*천장)/.test(context) && /(빗방울|물방울)/.test(context) && /색종이/.test(context)) {
     return "비 오는 날씨를 보며 빗방울의 모습을 표현해보았어요. 빗방울 도안에 남색, 파란색, 하늘색 색종이를 찢어 붙여 모자이크로 꾸미고, 완성한 작품을 모빌로 만들어 교실 천장에 매달았답니다. 천장에 매단 알록달록한 색종이 모빌을 살펴보며 느낀 점을 자연스럽게 나누어보았어요.";
@@ -295,6 +295,36 @@ const naturalizeNote = (note: string, playTitle: string) => {
     story = story.replace(/(?:해보았어요|했어요|했답니다|느꼈어요|나누었어요)\.$/, "하며 앞선 놀이의 관심이 새로운 놀이로 자연스럽게 확장되고 있답니다.");
   }
   return finalizeDescription(story);
+};
+
+// 놀이 장면을 충분히 서술한 뒤, 메모에서 확인되는 핵심 경험에 맞는
+// 누리과정 해석을 마지막 한 문장으로만 자연스럽게 연결한다.
+const curriculumInterpretation = (note: string) => {
+  const context = note;
+  if (/소리|말로|낱말|어휘|글자|읽고|읽어|써봄|써s*봄|말로s*나타/.test(context)) {
+    return "소리와 낱말을 연결하고 자신의 생각을 말과 글로 표현하는 의사소통 경험으로 이어졌어요.";
+  }
+  if (/실험|변화|관찰|색소|구름|비가|섞어|번짐|자연|식물|꽃|나뭇잎|곤충|씨앗/.test(context)) {
+    return "재료와 자연 현상의 변화를 살펴보며 원인과 결과를 탐색하는 자연탐구 경험을 쌓았어요.";
+  }
+  if (/달리|뛰|점프|균형|기어|움직임|몸짓|물총|물놀이|신체/.test(context)) {
+    return "몸의 움직임을 조절하고 공간을 안전하게 사용하는 신체운동·건강 경험으로 이어졌어요.";
+  }
+  if (/친구|짝|함께|협동|나누|서로|공동/.test(context)) {
+    return "친구와 생각을 나누고 협력하며 함께 놀이를 만들어가는 사회관계 경험을 쌓았어요.";
+  }
+  if (/미술|그림|색|물감|분필|클레이|색종이|모자이크|모빌|꾸미|표현|만들/.test(context)) {
+    return "재료의 특성을 탐색하고 자신의 생각과 느낌을 창의적으로 표현하는 예술경험으로 이어졌어요.";
+  }
+  return "놀이 속에서 발견한 생각과 느낌을 자신의 방법으로 표현하며 배움을 넓혀갔어요.";
+};
+
+const naturalizeNote = (note: string, playTitle: string) => {
+  const story = naturalizeNoteBase(note, playTitle);
+  const interpretation = curriculumInterpretation(note);
+  const normalized = interpretation.replace(/[.!?]$/, "");
+  if (story.includes(normalized)) return story;
+  return finalizeDescription(`${story} ${interpretation}`);
 };
 
 const preserveMemoCore = (note: string, story: string) => {
