@@ -64,10 +64,12 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(page, /extractMemoFacts/);
   assert.match(page, /generateTeacherPanelDraft/);
   assert.match(page, /selectPlayPanelFewShots\(note, 3\)/);
+  assert.match(page, /copiesFewShotExpression/);
+  assert.match(page, /!audit\.copiedFewShot/);
   assert.match(page, /repeatedAcrossPanel/);
-  assert.match(page, /오늘의 메모 → 사실만 추출 → 새 제목 → 교사 초안 → 자동 검사 → 최종 출력/);
+  assert.match(page, /① 사실 추출 → ② 관련 예시 1~3개 선택/);
   assert.match(page, /장마를 담은 물방울/);
-  assert.match(page, /장마철 창밖으로 떨어지는 빗방울을 살펴본 뒤/);
+  assert.match(page, /비가 이어지는 장마 풍경을 떠올리며/);
   assert.match(page, /restateCopiedMemo/);
   assert.match(page, /입력은 메모입니다/);
   assert.match(page, /만 5세 담임교사가 부모에게 오늘의 놀이를 소개하는 관찰 기록/);
@@ -75,7 +77,10 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.doesNotMatch(page, /return "색과 선으로 펼친 우리 생각"/);
   assert.doesNotMatch(page, /return "생각을 모아 만든 우리 세상"/);
   assert.doesNotMatch(page, /재료와 방법을 스스로 선택해 표현하는 모습/);
-  assert.ok((fewShots.match(/closingPerspective:/g) || []).length >= 20, "Few-shot examples must include at least 20 real panel patterns");
+  assert.ok((fewShots.match(/closingPerspective:/g) || []).length >= 25, "Few-shot examples must include 20–30 classified panel patterns");
   assert.match(fewShots, /export const selectPlayPanelFewShots/);
+  assert.match(fewShots, /PLAY_PANEL_FEW_SHOTS_BY_CATEGORY/);
+  assert.match(fewShots, /"봄", "여름", "가을", "겨울", "자연물", "그림책", "미술", "과학", "신체", "역할놀이", "요리", "바깥놀이"/);
   assert.doesNotMatch(fewShots, /상상력과 표현력을 넓혀 나갔습니다|재료의 특성을 탐색하며/);
+  assert.doesNotMatch(page, /candidates\.unshift\(exactFewShot\.description\)/);
 });

@@ -6,6 +6,12 @@ export type PlayPanelFewShot = {
   closingPerspective: number;
 };
 
+export type PlayPanelCategory = "봄" | "여름" | "가을" | "겨울" | "자연물" | "그림책" | "미술" | "과학" | "신체" | "역할놀이" | "요리" | "바깥놀이";
+
+export const PLAY_PANEL_CATEGORIES: PlayPanelCategory[] = [
+  "봄", "여름", "가을", "겨울", "자연물", "그림책", "미술", "과학", "신체", "역할놀이", "요리", "바깥놀이",
+];
+
 // 사용자가 제시한 놀이패널 문체와 놀이 사례를 정리한 로컬 Few-shot 자료입니다.
 // 문장을 복사하는 용도가 아니라, 메모와 가까운 사례의 흐름·온도·마무리 관점을
 // 선택하는 참고 자료로만 사용합니다.
@@ -142,16 +148,65 @@ export const PLAY_PANEL_FEW_SHOTS: PlayPanelFewShot[] = [
     description: "크기와 모양이 다른 블록을 골라 친구와 함께 여름 가게의 벽과 진열대를 쌓아 보았어요. 블록이 쓰러지는 곳은 자리를 바꾸고 필요한 공간을 더하며 가게의 모습을 차근차근 완성했답니다. 함께 세운 가게에 놀이 물건이 놓이자 새로운 역할놀이가 시작되었어요.",
     tags: ["블록", "친구", "여름", "가게", "역할놀이"], closingPerspective: 5,
   },
+  {
+    memo: "봄꽃을 관찰하고 꽃잎 모양 수채화 그리기",
+    title: "봄꽃 곁에 번진 고운 빛깔",
+    description: "산책에서 만난 봄꽃을 가까이 살펴본 뒤 꽃잎의 모양을 떠올리며 수채화로 그려 보았어요. 붓에 묻힌 물의 양을 조절하고 색이 번지는 자리를 바라보며 종이 위에 봄꽃을 한 송이씩 피워 냈답니다. 그림이 나란히 놓이자 교실 한쪽에도 따뜻한 봄빛이 머물렀어요.",
+    tags: ["봄", "봄꽃", "관찰", "수채화", "산책"], closingPerspective: 10,
+  },
+  {
+    memo: "가을 낙엽을 모아 동물 얼굴 콜라주 만들기",
+    title: "낙엽으로 태어난 가을 동물",
+    description: "바깥에서 모은 낙엽을 펼쳐 색과 생김새를 살펴보고 동물의 얼굴이 될 잎을 골라 보았어요. 둥근 잎은 얼굴로, 길쭉한 잎은 귀로 놓아 보며 자리를 바꾸고 풀로 붙여 가을 동물을 완성했답니다. 낙엽 동물이 하나둘 모이자 교실에 정겨운 가을 숲이 펼쳐졌어요.",
+    tags: ["가을", "낙엽", "자연물", "동물", "콜라주"], closingPerspective: 10,
+  },
+  {
+    memo: "겨울 눈 결정 사진 보고 종이 눈꽃 오리기",
+    title: "종이 위에 피어난 겨울 눈꽃",
+    description: "겨울 눈 결정 사진을 살펴본 뒤 접은 종이에 선을 그리고 가위로 조심스럽게 오려 보았어요. 종이를 펼칠 때 나타나는 무늬를 바라보며 선의 위치와 오린 모양에 따라 달라지는 눈꽃을 차근차근 완성했답니다. 하얀 눈꽃이 창가에 모이자 교실에도 포근한 겨울 풍경이 내려앉았어요.",
+    tags: ["겨울", "눈결정", "종이", "눈꽃", "오리기"], closingPerspective: 10,
+  },
 ];
 
 const normalize = (value: string) => value.replace(/\s+/g, "").toLowerCase();
 
+const CATEGORY_RULES: Array<[PlayPanelCategory, RegExp]> = [
+  ["봄", /봄|새싹|봄꽃|벚꽃|개나리|진달래/],
+  ["여름", /여름|장마|비|빗방울|태양|바다|파도|아이스크림|빙수|물놀이/],
+  ["가을", /가을|낙엽|단풍|도토리|솔방울|열매/],
+  ["겨울", /겨울|눈사람|눈꽃|눈이\s*오|눈\s*오는|눈이\s*내|얼음|서리|크리스마스/],
+  ["자연물", /자연물|나뭇잎|꽃|꽃잎|나무|씨앗|열매|돌|모래|흙|곤충|식물/],
+  ["그림책", /그림책|동화|책을|책\s*표지|이야기/],
+  ["미술", /그림|물감|크레파스|분필|색종이|클레이|점토|판화|모자이크|모빌|꾸미|그리|접기/],
+  ["과학", /실험|관찰|색소|수조|쉐이빙폼|녹|변화|구름|비가\s*되는|자석|빛|그림자/],
+  ["신체", /신체|달리|뛰|점프|균형|장애물|몸짓|움직임|던지|굴리/],
+  ["역할놀이", /역할놀이|가게|병원|식당|시장|주방|가족놀이/],
+  ["요리", /요리|만들어\s*먹|빙수|샌드위치|쿠키|과일|간식|디저트/],
+  ["바깥놀이", /바깥|옥상정원|하늘정원|운동장|놀이터|정원|산책|야외/],
+];
+
+export const classifyPlayPanelMemo = (memo: string): PlayPanelCategory[] =>
+  CATEGORY_RULES.filter(([, pattern]) => pattern.test(memo)).map(([category]) => category);
+
+export const categoriesForFewShot = (example: PlayPanelFewShot): PlayPanelCategory[] =>
+  classifyPlayPanelMemo(`${example.memo} ${example.title} ${example.tags.join(" ")}`);
+
+export const PLAY_PANEL_FEW_SHOTS_BY_CATEGORY = PLAY_PANEL_CATEGORIES.reduce<Record<PlayPanelCategory, PlayPanelFewShot[]>>(
+  (groups, category) => ({
+    ...groups,
+    [category]: PLAY_PANEL_FEW_SHOTS.filter(example => categoriesForFewShot(example).includes(category)),
+  }),
+  {} as Record<PlayPanelCategory, PlayPanelFewShot[]>,
+);
+
 export const selectPlayPanelFewShots = (memo: string, limit = 3) => {
   const source = normalize(memo);
+  const memoCategories = classifyPlayPanelMemo(memo);
   return PLAY_PANEL_FEW_SHOTS
     .map(example => ({
       example,
       score: example.tags.reduce((sum, tag) => sum + (source.includes(normalize(tag)) ? 3 : 0), 0)
+        + categoriesForFewShot(example).reduce((sum, category) => sum + (memoCategories.includes(category) ? 5 : 0), 0)
         + (source.includes(normalize(example.memo)) ? 5 : 0),
     }))
     .sort((a, b) => b.score - a.score)

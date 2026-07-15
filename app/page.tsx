@@ -2,6 +2,7 @@
 
 import { ChangeEvent, DragEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { selectPlayPanelFewShots } from "./play-panel-few-shots";
+import type { PlayPanelFewShot } from "./play-panel-few-shots";
 
 type Photo = { src: string; x: number; y: number } | null;
 type PptxConstructor = new () => any;
@@ -165,7 +166,7 @@ const removeTitleLead = (description: string, title: string) => {
 const naturalizeNoteBase = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
   if (/장마/.test(context) && /물방울/.test(context) && /종이접기|색종이|접기/.test(context)) {
-    return "장마철 창밖으로 떨어지는 빗방울을 살펴본 뒤, 색종이를 손끝으로 차근차근 접어 물방울 모양을 만들어 보았어요. 접힌 선을 따라 모양을 다듬고 완성한 물방울을 하나둘 창가에 붙이며 비 오는 날의 모습을 꾸며 보았답니다. 물방울이 나란히 흔들리는 창가를 바라보며 교실에 찾아온 시원한 여름 풍경을 함께 즐겨 보았어요.";
+    return "비가 이어지는 장마 풍경을 떠올리며 색종이를 반듯하게 접어 동그란 물방울 모양을 만들어 보았어요. 종이의 모서리를 맞추고 접힌 자리를 눌러 완성한 물방울을 교실 창가에 하나씩 붙여 꾸며 보았답니다. 창문에 모인 종이 물방울이 살랑일 때마다 비 오는 여름날의 정취가 교실 안에 머물렀어요.";
   }
   if (/모자이크/.test(context) && /(모빌|교실\s*천장)/.test(context) && /(빗방울|물방울)/.test(context) && /색종이/.test(context)) {
     return "비 오는 날씨를 보며 빗방울의 모습을 표현해보았어요. 빗방울 도안에 남색, 파란색, 하늘색 색종이를 찢어 붙여 모자이크로 꾸미고, 완성한 작품을 모빌로 만들어 교실 천장에 매달았답니다. 천장에 매단 알록달록한 색종이 모빌을 살펴보며 느낀 점을 자연스럽게 나누어보았어요.";
@@ -468,7 +469,7 @@ const panelDescriptionIssues = (value: string, note = "") => {
   const issues: string[] = [];
   if (sentences.length !== 3) issues.push("정확히 3문장이어야 합니다");
   if (text.length < 150 || text.length > 180) issues.push("150~180자로 작성해 주세요");
-  const endings = sentences.map(sentence => sentence.match(/(?:보았습니다|모습을 보였습니다|모습이 보였답니다|이어 나갔습니다|이어졌답니다|넓혀 나갔습니다|보았답니다|보았어요|했답니다|수 있었어요|보였어요|나타났어요|완성했어요|즐겨 보았어요|꾸며 보았어요|담아 보았어요|이어졌어요|펼쳐졌답니다|번졌답니다)\.$/)?.[0] || "");
+  const endings = sentences.map(sentence => sentence.match(/(?:보았습니다|모습을 보였습니다|모습이 보였답니다|이어 나갔습니다|이어졌답니다|넓혀 나갔습니다|보았답니다|보았어요|했답니다|수 있었어요|보였어요|나타났어요|완성했어요|즐겨 보았어요|꾸며 보았어요|담아 보았어요|이어졌어요|펼쳐졌답니다|번졌답니다|머물렀어요)\.$/)?.[0] || "");
   if (endings.filter(Boolean).length !== sentences.length) issues.push("부드러운 부모 공개용 종결 표현을 사용해 주세요");
   if (new Set(endings).size !== endings.length) issues.push("같은 종결 표현을 반복할 수 없습니다");
   const varietyCount = text.match(/다양한|다채로운|여러 가지/g)?.length ?? 0;
@@ -494,7 +495,16 @@ const normalizedSentences = (value: string) => value
   .map(sentence => normalizedMemoText(sentence))
   .filter(sentence => sentence.length >= 12);
 
-const auditGeneratedPanel = (note: string, title: string, description: string, existingDescriptions: string[] = []) => {
+const copiesFewShotExpression = (description: string, fewShots: PlayPanelFewShot[]) => {
+  const candidateSentences = normalizedSentences(description);
+  return fewShots.some(example => {
+    const exampleSentences = new Set(normalizedSentences(example.description));
+    const copiedSentence = candidateSentences.some(sentence => exampleSentences.has(sentence));
+    return copiedSentence || memoStructureSimilarity(example.description, description) >= 0.3;
+  });
+};
+
+const auditGeneratedPanel = (note: string, title: string, description: string, existingDescriptions: string[] = [], fewShots: PlayPanelFewShot[] = []) => {
   const descriptionIssues = panelDescriptionIssues(description, note);
   const titleIssues = panelTitleIssues(title, note);
   const previousSentences = new Set(existingDescriptions.flatMap(normalizedSentences));
@@ -502,6 +512,7 @@ const auditGeneratedPanel = (note: string, title: string, description: string, e
   return {
     copiedInput: copiesMemoStructure(note, description),
     summarizedMemo: memoStructureSimilarity(note, description) >= 0.3,
+    copiedFewShot: copiesFewShotExpression(description, fewShots),
     parentFacingPanel: descriptionIssues.length === 0,
     teacherNaturalness: !AI_CLICHE_PATTERN.test(description) && !/(?:해봄|했음|있음|나타남|관찰함|표현함|놀이함|함)(?:[.!?]|$)/.test(description),
     repeatedAcrossPanel,
@@ -581,7 +592,9 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
 };
 
 const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex: number, existingDescriptions: string[] = []) => {
-  // 오늘의 메모 → 사실만 추출 → 새 제목 → 교사 초안 → 자동 검사 → 최종 출력
+  // ① 사실 추출 → ② 관련 예시 1~3개 선택 → ③ 문체·분위기만 참고
+  // ④ 새 제목·설명 생성 → ⑤ 메모·예시 복사 검사 → ⑥ 상투 표현 검사
+  // ⑦ 부모 공개용 문체 → ⑧ 150~180자 → ⑨ 최종 출력
   const facts = extractMemoFacts(note);
   const fewShots = selectPlayPanelFewShots(note, 3);
   const title = makeNewspaperTitle(note, "", isBookPlay);
@@ -594,15 +607,13 @@ const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex:
     candidates.push(fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, closingVariant), title)));
     candidates.push(fitDescriptionToPanel(restateCopiedMemo(note, closingVariant)));
   }
-  const exactFewShot = fewShots.find(example => normalizedMemoText(example.memo) === normalizedMemoText(note));
-  if (exactFewShot) candidates.unshift(exactFewShot.description);
-
   const audited = candidates
     .filter(Boolean)
-    .map(description => ({ description, audit: auditGeneratedPanel(note, title, description, existingDescriptions) }));
+    .map(description => ({ description, audit: auditGeneratedPanel(note, title, description, existingDescriptions, fewShots) }));
   const passed = audited.find(({ audit }) =>
     !audit.copiedInput
     && !audit.summarizedMemo
+    && !audit.copiedFewShot
     && audit.parentFacingPanel
     && audit.teacherNaturalness
     && !audit.repeatedAcrossPanel
