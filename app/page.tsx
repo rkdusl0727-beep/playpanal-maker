@@ -75,6 +75,21 @@ const pretty = (iso: string) => {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 };
 
+// AI/규칙 기반 문장을 합칠 때 같은 문장이 반복되지 않도록 정리한다.
+const dedupeSentences = (value: string) => {
+  const seen = new Set<string>();
+  return value
+    .split(/(?<=[.!?])\s+/)
+    .map(sentence => sentence.trim())
+    .filter(sentence => {
+      const key = sentence.replace(/\s+/g, " ").replace(/[.!?]+$/, "").trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join(" ");
+};
+
 // 메모체는 편집용 입력에서만 허용하고, 생성 결과와 신문에는 완성형 문장만 남긴다.
 const finalizeDescription = (value: string) => {
   let text = value
@@ -83,6 +98,8 @@ const finalizeDescription = (value: string) => {
     .replace(/태양을꾸/g, "태양을 꾸")
     .replace(/숨을불어/g, "숨을 불어")
     .replace(/느낄수/g, "느낄 수")
+    .replace(/만듦/g, "만들어보았어요")
+    .replace(/만듬/g, "만들어보았어요")
     .replace(/([가-힣])하고([가-힣])/g, "$1하고 $2")
     .replace(/([가-힣])고([가-힣])/g, "$1고 $2")
     .replace(/(살펴|관찰해|그려|만들어|꾸며|읽어|놀이해|표현해|탐색해|완성해|매달아|붙여|접어|오려|찍어|불어|섞어|칠해|그어|이어|쌓아|놓아|담아|찾아|느껴|만져|흔들어)봄\s*([,，])/g, "$1보고$2")
@@ -121,11 +138,10 @@ const finalizeDescription = (value: string) => {
     .replace(/완성한\s+작품([은을이가의])/g, "완성한\u00a0작품$1")
     .trim();
   if (text && !/[.!?]$/.test(text)) text += ".";
-  return text;
+  return dedupeSentences(text);
 };
 
 const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = false) => {
-  const minChars = isBookPlay ? 100 : (isWide ? 130 : 118);
   let text = finalizeDescription(value)
     .replace(/함께 이야기를 나누어보았어요/g, "이야기를 나누었어요")
     .replace(/서로의 생각을 나누어보았어요/g, "생각을 나누었어요")
@@ -133,10 +149,9 @@ const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = fa
     .replace(/다양한 모습으로 나타날 수 있음을/g, "다르게 표현될 수 있음을")
     .replace(/놀이 과정에서 느낀 점을/g, "느낀 점을")
     .replace(/천천히 살펴보며/g, "살펴보며");
-  if (text.length < minChars) {
-    text = finalizeDescription(`${text} 놀이를 이어가며 서로의 표현을 살펴보고 느낀 점을 자연스럽게 나누어보았어요.`);
-  }
-  return text;
+  // 짧은 메모라고 해서 모든 놀이에 같은 문장을 덧붙이지 않는다.
+  // 메모에 담긴 장면을 보존한 결과를 그대로 사용하고, 중복 문장만 제거한다.
+  return dedupeSentences(text);
 };
 
 const removeTitleLead = (description: string, title: string) => {
@@ -205,6 +220,8 @@ const naturalizeNote = (note: string, playTitle: string) => {
       .replace(/이야기 나누고/g, "이야기를 나눈 뒤")
       .replace(/메미/g, "매미")
       .replace(/소리등/g, "소리 등")
+      .replace(/만듦/g, "만들어보았어요")
+      .replace(/만듬/g, "만들어보았어요")
       .replace(/여름풍경을 바닥에/g, "바닥에 여름 풍경을")
       .replace(/(을|를|에)\s*그림\s*([,，])/g, "$1 그리고$2")
       .replace(/거북이\s*물고기등\s*다양하게\s*그림그리고\s*친구들과\s*함께\s*합동그림도\s*그려봄$/g, "거북이와 물고기 등 다양한 모습을 그리고, 친구들과 함께 합동 그림도 완성해보았어요")
@@ -271,7 +288,9 @@ const naturalizeNote = (note: string, playTitle: string) => {
       : /소리|말|낱말|어휘|글자/.test(context)
         ? "놀이에서 발견한 소리와 말을 서로 들려주며 표현의 즐거움을 나누어보았어요."
         : hasPeerPlay ? "서로의 표현을 살펴보며 느낀 점을 자연스럽게 나누어보았어요." : "놀이를 이어가며 새롭게 발견한 점을 이야기해보았어요.";
-  if (story.length < 105 || (story.match(/[.!?]/g)?.length ?? 0) < 2) story = `${story} ${closing}`;
+  if ((story.match(/[.!?]/g)?.length ?? 0) < 2 && !story.includes(closing.replace(/[.!?]$/, ""))) {
+    story = `${story} ${closing}`;
+  }
   if (/확장활동/.test(context) && !/확장되고 있답니다/.test(story)) {
     story = story.replace(/(?:해보았어요|했어요|했답니다|느꼈어요|나누었어요)\.$/, "하며 앞선 놀이의 관심이 새로운 놀이로 자연스럽게 확장되고 있답니다.");
   }
@@ -319,7 +338,7 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (/비|빗방울|수채|번짐/.test(source)) return "물감으로 만난 비 오는 날";
   if (/소리|악기|노래|리듬/.test(source)) return "우리 주변에서 찾은 소리";
   if (/꽃|나뭇잎|나무|숲|자연/.test(source)) return "자연에서 발견한 새로운 모습";
-  if (/블록|쌓|구성|만들/.test(source)) return "생각을 모아 만든 우리 세상";
+  if (/블록|쌓기|쌓아|구성/.test(source)) return "생각을 모아 만든 우리 세상";
   if (/그림|색|미술|꾸미|표현/.test(source)) return "색과 선으로 펼친 우리 생각";
   if (/물놀이|바다|파도|물고기/.test(source)) return "물과 함께 발견한 여름 이야기";
   const compact = note
