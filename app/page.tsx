@@ -141,7 +141,7 @@ const finalizeDescription = (value: string) => {
   return dedupeSentences(text);
 };
 
-const fitDescriptionToSixLines = (value: string, isBookPlay = false, isWide = false) => {
+const fitDescriptionToPanel = (value: string) => {
   let text = finalizeDescription(value)
     .replace(/함께 이야기를 나누어보았어요/g, "이야기를 나누었어요")
     .replace(/서로의 생각을 나누어보았어요/g, "생각을 나누었어요")
@@ -301,30 +301,64 @@ const naturalizeNoteBase = (note: string, playTitle: string) => {
 // 누리과정 해석을 마지막 한 문장으로만 자연스럽게 연결한다.
 const curriculumInterpretation = (note: string) => {
   const context = note;
-  if (/소리|말로|낱말|어휘|글자|읽고|읽어|써봄|써s*봄|말로s*나타/.test(context)) {
-    return "소리와 낱말을 연결하고 자신의 생각을 말과 글로 표현하는 의사소통 경험으로 이어졌어요.";
+  if (/소리|말로|낱말|어휘|글자|읽고|읽어|써봄|써\s*봄|말로\s*나타/.test(context)) {
+    return "소리와 낱말을 연결하고 자신의 생각을 말과 글로 표현하며 의사소통 경험을 넓혀 나갔습니다.";
   }
   if (/실험|변화|관찰|색소|구름|비가|섞어|번짐|자연|식물|꽃|나뭇잎|곤충|씨앗/.test(context)) {
-    return "재료와 자연 현상의 변화를 살펴보며 원인과 결과를 탐색하는 자연탐구 경험을 쌓았어요.";
+    return "재료와 자연 현상의 변화를 살펴보고 원인과 결과를 탐색하며 문제 해결 경험을 넓혀 나갔습니다.";
   }
   if (/달리|뛰|점프|균형|기어|움직임|몸짓|물총|물놀이|신체/.test(context)) {
-    return "몸의 움직임을 조절하고 공간을 안전하게 사용하는 신체운동·건강 경험으로 이어졌어요.";
+    return "몸의 움직임을 조절하고 공간을 안전하게 사용하며 신체 조절 경험을 넓혀 나갔습니다.";
   }
   if (/친구|짝|함께|협동|나누|서로|공동/.test(context)) {
-    return "친구와 생각을 나누고 협력하며 함께 놀이를 만들어가는 사회관계 경험을 쌓았어요.";
+    return "친구와 생각을 나누고 함께 방법을 조율하며 또래 협력 경험을 넓혀 나갔습니다.";
   }
   if (/미술|그림|색|물감|분필|클레이|색종이|모자이크|모빌|꾸미|표현|만들/.test(context)) {
-    return "재료의 특성을 탐색하고 자신의 생각과 느낌을 창의적으로 표현하는 예술경험으로 이어졌어요.";
+    return "여러 재료의 특성을 탐색하고 손으로 모양을 구성하며 창의적 표현과 소근육 조절 경험을 넓혀 나갔습니다.";
   }
-  return "놀이 속에서 발견한 생각과 느낌을 자신의 방법으로 표현하며 배움을 넓혀갔어요.";
+  return "놀이 속에서 발견한 생각과 느낌을 자신의 방법으로 표현하며 배움을 넓혀 나갔습니다.";
 };
 
-const naturalizeNote = (note: string, playTitle: string) => {
-  const story = naturalizeNoteBase(note, playTitle);
-  const interpretation = curriculumInterpretation(note);
-  const normalized = interpretation.replace(/[.!?]$/, "");
-  if (story.includes(normalized)) return story;
-  return finalizeDescription(`${story} ${interpretation}`);
+const formalizePanelSentence = (sentence: string) => sentence
+  .replace(/[.!?]+$/, "")
+  .replace(/해\s*보았어요$/g, "해 보았습니다")
+  .replace(/해보았어요$/g, "해 보았습니다")
+  .replace(/보았어요$/g, "보았습니다")
+  .replace(/했답니다$/g, "했습니다")
+  .replace(/했어요$/g, "했습니다")
+  .replace(/느꼈어요$/g, "느껴 보았습니다")
+  .replace(/나누었어요$/g, "나누어 보았습니다")
+  .replace(/이어갔어요$/g, "이어 나갔습니다")
+  .replace(/이어갔답니다$/g, "이어 나갔습니다");
+
+const observationSentence = (sentence: string, note: string) => {
+  const body = sentence.replace(/[.!?]+$/, "");
+  const converted = body
+    .replace(/느낀 점을 자연스럽게 나누어보았어요$/g, "느낌과 생각을 서로 나누는 모습을 보였습니다")
+    .replace(/이야기를 나누어보았어요$/g, "생각을 말로 표현하는 모습을 보였습니다")
+    .replace(/이야기를 나누었어요$/g, "생각을 말로 표현하는 모습을 보였습니다")
+    .replace(/표현해\s*보았어요$/g, "자신의 방식으로 표현하는 모습을 보였습니다")
+    .replace(/표현해보았어요$/g, "자신의 방식으로 표현하는 모습을 보였습니다")
+    .replace(/완성했답니다$/g, "끝까지 완성하는 모습을 보였습니다")
+    .replace(/완성했어요$/g, "끝까지 완성하는 모습을 보였습니다")
+    .replace(/만들어보았어요$/g, "재료를 선택해 구성하는 모습을 보였습니다")
+    .replace(/살펴보았어요$/g, "특징을 자세히 살펴보는 모습을 보였습니다")
+    .replace(/탐색했답니다$/g, "변화를 자세히 탐색하는 모습을 보였습니다");
+  if (/모습을 보였습니다$/.test(converted)) return `${converted}.`;
+  if (/친구|함께|짝|협동/.test(note)) return `${formalizePanelSentence(body)}, 친구와 생각을 주고받으며 놀이를 이어 가는 모습을 보였습니다.`;
+  return `${formalizePanelSentence(body)}, 재료와 방법을 스스로 선택해 표현하는 모습을 보였습니다.`;
+};
+
+const toPanelDescription = (note: string, story: string) => {
+  if (/클레이/.test(note) && /아이스크림/.test(note) && /휴지심/.test(note) && /아이스바/.test(note)) {
+    return "아이들은 말랑말랑한 클레이를 조물조물 만지며 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았습니다. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 아이스크림에 다양한 장식과 무늬를 더하며 자신만의 여름 디저트를 표현하는 모습을 보였습니다. 여러 재료의 특성을 탐색하고 손으로 모양을 구성하는 과정에서 상상력과 표현력을 넓혀 나갔습니다.";
+  }
+  const sentences = dedupeSentences(story).split(/(?<=[.!?])\s+/).filter(Boolean);
+  const first = `${formalizePanelSentence(sentences[0] || note)}.`;
+  const secondSource = sentences[1] || sentences[0] || note;
+  const second = observationSentence(secondSource, note);
+  const third = curriculumInterpretation(note);
+  return dedupeSentences(`${first} ${second} ${third}`);
 };
 
 const preserveMemoCore = (note: string, story: string) => {
@@ -341,6 +375,7 @@ const preserveMemoCore = (note: string, story: string) => {
 
 const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: boolean) => {
   const source = `${note} ${currentTitle}`.replace(/\s+/g, " ");
+  if (/클레이/.test(source) && /아이스크림/.test(source) && /휴지심/.test(source) && /아이스바/.test(source)) return "클레이로 만든 여름 아이스크림 가게";
   if (/모자이크/.test(source) && /모빌/.test(source) && /물방울/.test(source)) return "알록달록 모자이크 물방울 모빌";
   if (/모자이크/.test(source) && /모빌/.test(source)) return "알록달록 색종이 모자이크 모빌";
   if (/우드락|판화|찍어내/.test(source) && /소리/.test(source)) return "여름 소리를 찍어낸 우드락 판화";
@@ -625,12 +660,13 @@ export default function Home() {
     setPlays(current => current.map((p, i) => {
       if (i !== idx) return p;
       const generatedTitle = makeNewspaperTitle(note, "", p.isBookPlay);
-      const generatedDescription = fitDescriptionToSixLines(removeTitleLead(preserveMemoCore(note, naturalizeNote(note, generatedTitle)), generatedTitle), p.isBookPlay, idx === 4);
+      const memoStory = preserveMemoCore(note, naturalizeNoteBase(note, generatedTitle));
+      const generatedDescription = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, memoStory), generatedTitle));
       return { ...p, note, title: generatedTitle, description: generatedDescription, approved: false };
     }));
   };
   const publishDraft = (idx: number, title: string, description: string) => {
-    const completedDescription = fitDescriptionToSixLines(removeTitleLead(description, title), plays[idx].isBookPlay, idx === 4);
+    const completedDescription = fitDescriptionToPanel(removeTitleLead(description, title));
     const next = plays.map((play, i) => i === idx ? { ...play, title, description: completedDescription, publishedTitle: title, publishedDescription: completedDescription, approved: true } : play);
     setPlays(next);
     if (next.every(play => play.approved)) setWeeklyLearning(makeWeeklyLearning(next, theme));
@@ -645,8 +681,8 @@ export default function Home() {
       if (!p.title.trim()) items.push(`${i + 1}번 놀이 제목`);
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
       else {
-        const minimumLength = p.isBookPlay ? 100 : (i === 4 ? 130 : 118);
-        if (p.description.trim().length < minimumLength || (p.description.match(/[.!?]/g)?.length ?? 0) < 2) items.push(`${i + 1}번 놀이 설명 4줄 이상`);
+        const sentenceCount = p.description.match(/[.!?]/g)?.length ?? 0;
+        if (p.description.trim().length < 150 || p.description.trim().length > 260 || sentenceCount !== 3) items.push(`${i + 1}번 놀이 설명 3문장 확인`);
       }
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
       if (p.isBookPlay && !p.bookCover) items.push(`${i + 1}번 그림책 표지`);
@@ -924,7 +960,7 @@ export default function Home() {
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지 업로드</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload book-drop-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>dropBookCover(e,pi)}><span>{p.bookCover?"그림책 표지 수정 · 클릭 또는 드래그":"클릭 또는 드래그해서 업로드"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>놀이 메모 <span className="memo-guide">메모를 적고 <kbd>Enter</kbd>를 누르면 제목과 설명이 만들어집니다 <i>·</i> 줄바꿈은 <kbd>Shift + Enter</kbd></span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,title:"",description:"",publishedTitle:"",publishedDescription:"",approved:false})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing)e.preventDefault()}} onKeyUp={e=>{if(e.key==="Enter"&&!e.shiftKey)generateFromNote(pi,e.currentTarget.value)}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">실제 놀이신문과 같은 글꼴·크기·줄 간격 · 기본 4줄~최대 6줄 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToSixLines(e.currentTarget.value,p.isBookPlay,pi===4),approved:false})}/></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
+        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">부모 공개용 3문장 · 약 180~230자 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToPanel(e.currentTarget.value),approved:false})}/></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
         <div className="photo-count-row"><p className="mini-label">Shift로 여러 장을 선택하면 선택한 칸부터 순서대로 채워집니다</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 4|6|8})}><option value={4}>4장</option><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si} draggable onDragStart={e=>startPhotoOrderDrag(e,pi,si)} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move"}} onDrop={e=>dropPhotoOrder(e,pi,si)} onDragEnd={()=>{orderDragRef.current=null}}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden multiple type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>
