@@ -59,8 +59,15 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(page, /알록달록 꾸미기 놀이/);
   assert.match(page, /재료·계절·놀이 결과가 보이는 제목/);
   assert.match(page, /copiesMemoStructure/);
+  assert.match(page, /memoStructureSimilarity\(note, description\) >= 0\.3/);
+  assert.match(page, /extractMemoFacts/);
+  assert.match(page, /generateTeacherPanelDraft/);
+  assert.match(page, /오늘의 메모 → 사실만 추출 → 새 제목 → 교사 초안 → 자동 검사 → 최종 출력/);
+  assert.match(page, /장마를 담은 물방울/);
+  assert.match(page, /장마철 창밖으로 떨어지는 빗방울을 살펴본 뒤/);
   assert.match(page, /restateCopiedMemo/);
-  assert.match(page, /메모 문장을 이어 쓰지 말고 새로운 문장으로 재서술/);
+  assert.match(page, /입력은 메모입니다/);
+  assert.match(page, /만 5세 담임교사가 부모에게 오늘의 놀이를 소개하는 관찰 기록/);
   assert.match(page, /메모를 축약하지 말고 놀이패널 제목으로 새롭게 작성/);
   assert.doesNotMatch(page, /return "색과 선으로 펼친 우리 생각"/);
   assert.doesNotMatch(page, /return "생각을 모아 만든 우리 세상"/);

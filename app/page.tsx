@@ -163,6 +163,9 @@ const removeTitleLead = (description: string, title: string) => {
 
 const naturalizeNoteBase = (note: string, playTitle: string) => {
   const context = `${note} ${playTitle}`;
+  if (/장마/.test(context) && /물방울/.test(context) && /종이접기|색종이|접기/.test(context)) {
+    return "장마철 창밖으로 떨어지는 빗방울을 살펴본 뒤, 색종이를 손끝으로 차근차근 접어 물방울 모양을 만들어 보았어요. 접힌 선을 따라 모양을 다듬고 완성한 물방울을 하나둘 창가에 붙이며 비 오는 날의 모습을 꾸며 보았답니다. 물방울이 나란히 흔들리는 창가를 바라보며 교실에 찾아온 시원한 여름 풍경을 함께 즐겨 보았어요.";
+  }
   if (/모자이크/.test(context) && /(모빌|교실\s*천장)/.test(context) && /(빗방울|물방울)/.test(context) && /색종이/.test(context)) {
     return "비 오는 날씨를 보며 빗방울의 모습을 표현해보았어요. 빗방울 도안에 남색, 파란색, 하늘색 색종이를 찢어 붙여 모자이크로 꾸미고, 완성한 작품을 모빌로 만들어 교실 천장에 매달았답니다. 천장에 매단 알록달록한 색종이 모빌을 살펴보며 느낀 점을 자연스럽게 나누어보았어요.";
   }
@@ -329,16 +332,17 @@ const playClosingSentence = (note: string, variant = 0) => {
 };
 
 const restateCopiedMemo = (note: string, closingVariant = 0) => {
-  const materials = ["클레이", "휴지심", "색종이", "자연물", "분필", "물감", "우드락", "연필", "블록", "악기", "페트병", "크레파스", "습자지"]
+  const materials = ["클레이", "휴지심", "색종이", "자연물", "분필", "물감", "우드락", "연필", "블록", "악기", "페트병", "크레파스", "습자지", "점토", "종이", "천", "모래", "물", "나뭇잎"]
     .filter(material => note.includes(material)).slice(0, 3);
   const result = [
     [/아이스크림/, "아이스크림"], [/아이스바/, "아이스바"], [/팥빙수|빙수/, "팥빙수"], [/물방울/, "물방울"],
     [/판화/, "판화"], [/모빌/, "모빌"], [/물총/, "물총"], [/여름\s*풍경/, "여름 풍경"], [/소리/, "소리 놀이"],
     [/그림/, "그림"], [/쌓기|블록/, "블록 공간"],
   ].find(([pattern]) => (pattern as RegExp).test(note))?.[1] as string | undefined;
-  if (!materials.length && !result) return "";
-  const materialText = materials.length ? materials.join("·") : "놀이 재료";
-  const resultText = result || "놀이 작품";
+  const inferredMaterial = note.match(/([가-힣A-Za-z0-9]{2,12})(?:으로|로|을|를)\s+(?:만들|꾸미|그리|접|찍|쌓|연결|관찰|살펴|놀이)/)?.[1];
+  const inferredResult = note.match(/([가-힣A-Za-z0-9\s]{2,16})(?:을|를)\s*(?:만들|꾸미|그리|접|찍|쌓|완성|관찰|살펴)/)?.[1]?.trim();
+  const materialText = materials.length ? materials.join("·") : inferredMaterial || "준비한 놀이 자료";
+  const resultText = result || inferredResult || "오늘의 놀이 장면";
   const asObject = (word: string) => {
     const code = word.charCodeAt(word.length - 1);
     const hasBatchim = code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
@@ -388,6 +392,9 @@ const observationSentence = (sentence: string, note: string) => {
 };
 
 const toPanelDescription = (note: string, story: string, closingVariant = 0) => {
+  if (/장마/.test(note) && /물방울/.test(note) && /종이접기|색종이|접기/.test(note)) {
+    return story;
+  }
   if (/클레이/.test(note) && /아이스크림/.test(note) && /휴지심/.test(note) && /아이스바/.test(note)) {
     return `아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 장식과 무늬를 더하며 저마다의 여름 디저트를 완성했답니다. ${playClosingSentence(note, closingVariant)}`;
   }
@@ -406,13 +413,52 @@ const normalizedMemoText = (value: string) => value
   .replace(/(?:해봄|해보았음|했음|있음|나타남|관찰함|표현함|놀이함|만들기|만들었음|함)/g, "")
   .replace(/[^가-힣A-Za-z0-9]/g, "");
 
+// 생성기의 최우선 역할 규칙: 입력은 완성 문장이 아니라 교사의 메모이다.
+// 메모의 사실은 보존하되 문장 구조는 가져오지 않고, 만 5세 담임교사가
+// 퇴근 전 부모에게 오늘의 놀이 장면을 소개하듯 새롭게 재서술한다.
+const PANEL_WRITING_ROLE = "만 5세 담임교사가 부모에게 오늘의 놀이를 소개하는 관찰 기록";
+const AI_CLICHE_PATTERN = /상상력과 표현력을 넓혀 나갔습니다|손끝으로 모양을 만들어 가며.{0,30}표현하는 즐거움|재료의 특성을 탐색하며|자신만의 .{0,20} 표현(?:하였습니다|했습니다)|다양한 재료를 탐색하였습니다/;
+
+const memoTokens = (value: string) => value
+  .replace(/[,.!?·:;()[\]{}“”‘’「」]/g, " ")
+  .split(/\s+/)
+  .map(token => token
+    .replace(/(?:으로|에서|에게|까지|부터|처럼|하고|하며|해서|하여|하고자|으로써)$/g, "")
+    .replace(/(?:은|는|이|가|을|를|에|의|와|과|도|로)$/g, "")
+    .replace(/(?:해봄|해보았음|했음|있음|나타남|관찰함|표현함|놀이함|만들기|만들었음|함)$/g, "")
+    .trim())
+  .filter(token => token.length >= 2);
+
+const memoStructureSimilarity = (note: string, value: string) => {
+  const source = memoTokens(note);
+  const output = memoTokens(value);
+  // 짧은 키워드 메모에는 비교할 문장 구조가 없으므로 사실어의 일치는 허용한다.
+  if (source.length < 6 || output.length < 6) return 0;
+  const sourceFlow = Array.from({ length: source.length - 2 }, (_, index) => source.slice(index, index + 3).join("|"));
+  const outputFlow = new Set(Array.from({ length: output.length - 2 }, (_, index) => output.slice(index, index + 3).join("|")));
+  const sameFlow = sourceFlow.filter(flow => outputFlow.has(flow)).length;
+  return sourceFlow.length ? sameFlow / sourceFlow.length : 0;
+};
+
 const copiesMemoStructure = (note: string, value: string) => {
   const output = normalizedMemoText(value);
-  return note
+  const containsLongMemoClause = note
     .split(/[\n,.!?]+/)
     .map(part => normalizedMemoText(part))
     .filter(part => part.length >= 14)
     .some(part => output.includes(part));
+  if (containsLongMemoClause) return true;
+  if (memoStructureSimilarity(note, value) >= 0.3) return true;
+
+  // 조사와 메모체 어미만 바꾸어 이어 쓴 경우도 실패로 본다.
+  const sourceTokens = memoTokens(note);
+  const outputTokens = memoTokens(value);
+  if (sourceTokens.length < 4 || outputTokens.length < 4) return false;
+  const outputWindows = new Set(
+    Array.from({ length: outputTokens.length - 3 }, (_, index) => outputTokens.slice(index, index + 4).join("|")),
+  );
+  return Array.from({ length: sourceTokens.length - 3 }, (_, index) => sourceTokens.slice(index, index + 4).join("|"))
+    .some(window => outputWindows.has(window));
 };
 
 const panelDescriptionIssues = (value: string, note = "") => {
@@ -427,9 +473,9 @@ const panelDescriptionIssues = (value: string, note = "") => {
   const varietyCount = text.match(/다양한|다채로운|여러 가지/g)?.length ?? 0;
   if (varietyCount > 1) issues.push("'다양한·다채로운·여러 가지'는 1회 이하로 사용해 주세요");
   if (/교육적 효과|학습 목표|발달시켰다/.test(text)) issues.push("딱딱한 교육 용어는 사용할 수 없습니다");
-  if (/상상력과 표현력을 넓혀 나갔습니다|손끝으로 모양을 만들어 가며.{0,30}표현하는 즐거움|재료의 특성을 탐색하며|자신만의 .{0,20} 표현(?:하였습니다|했습니다)|다양한 재료를 탐색하였습니다/.test(text)) issues.push("금지된 AI 문구와 유사한 표현은 사용할 수 없습니다");
+  if (AI_CLICHE_PATTERN.test(text)) issues.push("금지된 AI 문구와 유사한 표현은 사용할 수 없습니다");
   if (/(?:해봄|해보았음|볼\s*수\s*있었음|나타남|관찰함|표현함|놀이함|했음|있음|함)(?:[.!?]|$)/.test(text)) issues.push("메모체 종결은 사용할 수 없습니다");
-  if (note && copiesMemoStructure(note, text)) issues.push("메모 문장을 이어 쓰지 말고 새로운 문장으로 재서술해 주세요");
+  if (note && copiesMemoStructure(note, text)) issues.push(`입력은 메모입니다. 문장 구조를 복사하지 말고 ${PANEL_WRITING_ROLE}으로 새롭게 재서술해 주세요`);
   return issues;
 };
 
@@ -442,13 +488,38 @@ const panelTitleIssues = (value: string, note = "") => {
   return issues;
 };
 
-const preserveMemoCore = (note: string, story: string) => {
-  const coreTerms = [
+const auditGeneratedPanel = (note: string, title: string, description: string) => {
+  const descriptionIssues = panelDescriptionIssues(description, note);
+  const titleIssues = panelTitleIssues(title, note);
+  return {
+    copiedInput: copiesMemoStructure(note, description),
+    summarizedMemo: memoStructureSimilarity(note, description) >= 0.3,
+    parentFacingPanel: descriptionIssues.length === 0,
+    teacherNaturalness: !AI_CLICHE_PATTERN.test(description) && !/(?:해봄|했음|있음|나타남|관찰함|표현함|놀이함|함)(?:[.!?]|$)/.test(description),
+    freshPanelTitle: titleIssues.length === 0,
+    descriptionIssues,
+    titleIssues,
+  };
+};
+
+const extractMemoFacts = (note: string) => {
+  const factTerms = [
     "하늘정원", "옥상정원", "교실", "운동장", "바닥", "천장", "우산", "빗소리", "빗방울", "물웅덩이", "비밀그림",
     "크레파스", "분필", "물감", "습자지", "색종이", "우드락", "연필", "빨대", "블록", "악기", "놀잇감", "판화", "모자이크", "모빌",
-    "태양", "구름", "파도", "물고기", "거북이", "여름 과일", "수박", "참외", "매미", "천둥", "소리", "그림책", "책 표지", "합동 그림", "협동 작품",
+    "클레이", "휴지심", "아이스크림", "아이스바", "팥빙수", "종이접기", "태양", "구름", "파도", "물고기", "거북이",
+    "여름 과일", "수박", "참외", "매미", "천둥", "소리", "그림책", "책 표지", "합동 그림", "협동 작품",
   ];
-  const missing = coreTerms.filter(term => note.includes(term) && !story.includes(term));
+  return {
+    terms: factTerms.filter(term => note.includes(term)),
+    hasBook: /그림책|책을\s*읽/.test(note),
+    hasPeerPlay: /친구|짝|함께|협동|공동/.test(note),
+    isExtension: /확장활동/.test(note),
+  };
+};
+
+const preserveMemoCore = (note: string, story: string) => {
+  const facts = extractMemoFacts(note);
+  const missing = facts.terms.filter(term => !story.includes(term));
   if (!missing.length) return story;
   const joined = missing.slice(0, 7).join(", ");
   return finalizeDescription(`${story.replace(/[.!?]\s*$/, "")} ${joined} 장면을 함께 살펴보며 놀이를 이어가보았어요.`);
@@ -491,21 +562,46 @@ const makeNewspaperTitle = (note: string, currentTitle: string, isBookPlay: bool
   if (/블록|쌓기|쌓아|구성/.test(source)) return "블록으로 만든 놀이 공간";
   if (/그림|색|미술|꾸미|표현/.test(source)) return "알록달록 꾸미기 놀이";
   if (/물놀이|바다|파도|물고기/.test(source)) return "물과 함께 발견한 여름 이야기";
-  const compact = note
-    .replace(/^\s*(확장활동\s*[:：]?\s*)?/, "")
-    .replace(/(해봄|했음|함|있음|나타남|살펴봄|관찰함|표현함)\s*$/, "")
-    .replace(/[.!?。]+.*$/, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (compact) {
-    const nouns = compact
-      .replace(/아이들은?|유아들은?|친구들과?|함께/g, "")
-      .replace(/(으로|에서|하며|하고|하여|위해|통해)\s*/g, " ")
-      .trim();
-    if (nouns.length <= 24) return nouns;
-    return `${nouns.slice(0, 22).trim()} 이야기`;
+  const keyword = memoTokens(note).find(token => !/아이들|유아들|친구들|오늘|놀이|활동/.test(token));
+  if (keyword) {
+    const code = keyword.charCodeAt(keyword.length - 1);
+    const hasBatchim = code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
+    return `${keyword}${hasBatchim ? "으로" : "로"} 이어진 오늘의 놀이`.slice(0, 16);
   }
   return "오늘 함께한 놀이 이야기";
+};
+
+const generateTeacherPanelDraft = (note: string, isBookPlay: boolean, playIndex: number) => {
+  // 오늘의 메모 → 사실만 추출 → 새 제목 → 교사 초안 → 자동 검사 → 최종 출력
+  const facts = extractMemoFacts(note);
+  const title = makeNewspaperTitle(note, "", isBookPlay);
+  const factualStory = preserveMemoCore(note, naturalizeNoteBase(note, title));
+  const candidates: string[] = [];
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    candidates.push(fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, factualStory, playIndex + attempt), title)));
+    candidates.push(fitDescriptionToPanel(restateCopiedMemo(note, playIndex + attempt)));
+  }
+
+  const audited = candidates
+    .filter(Boolean)
+    .map(description => ({ description, audit: auditGeneratedPanel(note, title, description) }));
+  const passed = audited.find(({ audit }) =>
+    !audit.copiedInput
+    && !audit.summarizedMemo
+    && audit.parentFacingPanel
+    && audit.teacherNaturalness
+    && audit.freshPanelTitle,
+  );
+  if (passed) return { title, description: passed.description, facts, audit: passed.audit };
+
+  // 모든 검사를 통과한 문장이 없으면 오류가 가장 적은 교사 재서술안을 제시하되,
+  // 승인 버튼은 기존 검증 규칙에 의해 활성화되지 않는다.
+  const best = audited.sort((a, b) =>
+    (a.audit.descriptionIssues.length + a.audit.titleIssues.length)
+    - (b.audit.descriptionIssues.length + b.audit.titleIssues.length),
+  )[0];
+  return { title, description: best?.description || "", facts, audit: best?.audit };
 };
 
 const withAnd = (word: string) => {
@@ -744,15 +840,8 @@ export default function Home() {
     if (!note.trim()) return;
     setPlays(current => current.map((p, i) => {
       if (i !== idx) return p;
-      const generatedTitle = makeNewspaperTitle(note, "", p.isBookPlay);
-      const memoStory = preserveMemoCore(note, naturalizeNoteBase(note, generatedTitle));
-      let generatedDescription = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, memoStory, idx), generatedTitle));
-      // 생성 결과가 메모의 긴 문장을 그대로 포함하면 한 번 더 교사 문체로 재서술한다.
-      if (copiesMemoStructure(note, generatedDescription)) {
-        const restated = restateCopiedMemo(note, idx);
-        if (restated) generatedDescription = fitDescriptionToPanel(restated);
-      }
-      return { ...p, note, title: generatedTitle, description: generatedDescription, approved: false };
+      const generated = generateTeacherPanelDraft(note, p.isBookPlay, idx);
+      return { ...p, note, title: generated.title, description: generated.description, approved: false };
     }));
   };
   const publishDraft = (idx: number, title: string, description: string) => {
