@@ -361,6 +361,19 @@ const toPanelDescription = (note: string, story: string) => {
   return dedupeSentences(`${first} ${second} ${third}`);
 };
 
+const panelDescriptionIssues = (value: string) => {
+  const text = value.trim();
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const issues: string[] = [];
+  if (sentences.length !== 3) issues.push("정확히 3문장이어야 합니다");
+  if (text.length < 180 || text.length > 230) issues.push("180~230자로 작성해 주세요");
+  if (sentences[1] && !/모습을 보였습니다\.$/.test(sentences[1])) issues.push("두 번째 문장은 관찰한 놀이 모습으로 끝나야 합니다");
+  if (sentences[2] && !/나갔습니다\.$/.test(sentences[2])) issues.push("세 번째 문장은 놀이의 배움으로 끝나야 합니다");
+  if (/교육적 효과|학습 목표|발달시켰다/.test(text)) issues.push("딱딱한 교육 용어는 사용할 수 없습니다");
+  if (/(?:해봄|해보았음|볼\s*수\s*있었음|나타남|관찰함|표현함|놀이함|했음|있음|함)(?:[.!?]|$)/.test(text)) issues.push("메모체 종결은 사용할 수 없습니다");
+  return issues;
+};
+
 const preserveMemoCore = (note: string, story: string) => {
   const coreTerms = [
     "하늘정원", "옥상정원", "교실", "운동장", "바닥", "천장", "우산", "빗소리", "빗방울", "물웅덩이", "비밀그림",
@@ -667,6 +680,7 @@ export default function Home() {
   };
   const publishDraft = (idx: number, title: string, description: string) => {
     const completedDescription = fitDescriptionToPanel(removeTitleLead(description, title));
+    if (panelDescriptionIssues(completedDescription).length) return;
     const next = plays.map((play, i) => i === idx ? { ...play, title, description: completedDescription, publishedTitle: title, publishedDescription: completedDescription, approved: true } : play);
     setPlays(next);
     if (next.every(play => play.approved)) setWeeklyLearning(makeWeeklyLearning(next, theme));
@@ -681,8 +695,8 @@ export default function Home() {
       if (!p.title.trim()) items.push(`${i + 1}번 놀이 제목`);
       if (!p.description.trim()) items.push(`${i + 1}번 놀이 설명`);
       else {
-        const sentenceCount = p.description.match(/[.!?]/g)?.length ?? 0;
-        if (p.description.trim().length < 150 || p.description.trim().length > 260 || sentenceCount !== 3) items.push(`${i + 1}번 놀이 설명 3문장 확인`);
+        const descriptionIssues = panelDescriptionIssues(p.description);
+        if (descriptionIssues.length) items.push(`${i + 1}번 놀이 설명 규칙 확인`);
       }
       if (!p.approved) items.push(`${i + 1}번 AI 문장 승인`);
       if (p.isBookPlay && !p.bookCover) items.push(`${i + 1}번 그림책 표지`);
@@ -960,7 +974,7 @@ export default function Home() {
         <label className="book-toggle"><input type="checkbox" checked={p.isBookPlay} onChange={e=>updatePlay(pi,{isBookPlay:e.target.checked})}/><span>이 놀이는 그림책 활동이에요</span></label>
         {p.isBookPlay&&<div className="book-cover-editor"><div className="section-title"><b>그림책 표지 업로드</b><span>사진 6칸과 별도로 저장됩니다</span></div><label className="upload background-upload book-drop-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>dropBookCover(e,pi)}><span>{p.bookCover?"그림책 표지 수정 · 클릭 또는 드래그":"클릭 또는 드래그해서 업로드"}</span><input hidden type="file" accept="image/*" onChange={e=>uploadBookCover(e,pi)}/></label>{p.bookCover&&<><label>좌우 초점<input type="range" min="0" max="100" value={p.bookCover.x} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,x:+e.target.value}})}/></label><label>상하 초점<input type="range" min="0" max="100" value={p.bookCover.y} onChange={e=>updatePlay(pi,{bookCover:{...p.bookCover!,y:+e.target.value}})}/></label></>}</div>}
         <label>놀이 메모 <span className="memo-guide">메모를 적고 <kbd>Enter</kbd>를 누르면 제목과 설명이 만들어집니다 <i>·</i> 줄바꿈은 <kbd>Shift + Enter</kbd></span><textarea value={p.note} onChange={e=>updatePlay(pi,{note:e.target.value,title:"",description:"",publishedTitle:"",publishedDescription:"",approved:false})} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing)e.preventDefault()}} onKeyUp={e=>{if(e.key==="Enter"&&!e.shiftKey)generateFromNote(pi,e.currentTarget.value)}} placeholder="예: 파란 물감과 흰 물감을 섞고 빨대로 불어 비 오는 모습을 표현함"/></label>
-        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">부모 공개용 3문장 · 약 180~230자 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToPanel(e.currentTarget.value),approved:false})}/></label><button className={p.approved?"approved":"approve"} disabled={p.approved} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
+        {(p.title || p.description) && <div className="draft-result"><div className="draft-result-head"><b>생성된 놀이신문</b><span>위에서 다듬은 내용이 그대로 신문에 반영됩니다</span></div><label>놀이 제목<input value={p.title} onChange={e=>updatePlay(pi,{title:e.target.value,approved:false})}/></label><label>놀이 설명 <span className="description-guide">부모 공개용 3문장 · 180~230자 ({p.description.trim().length}자)</span><textarea className={`newspaper-description ${p.isBookPlay?"book-description":""} ${pi===4?"wide-description":""}`} rows={6} value={p.description} onChange={e=>updatePlay(pi,{description:e.target.value,approved:false})} onBlur={e=>updatePlay(pi,{description:fitDescriptionToPanel(e.currentTarget.value),approved:false})}/></label>{panelDescriptionIssues(p.description).length>0&&<p className="description-rule-error">{panelDescriptionIssues(p.description).join(" · ")}</p>}<button className={p.approved?"approved":"approve"} disabled={p.approved||panelDescriptionIssues(p.description).length>0} onClick={()=>publishDraft(pi,p.title,p.description)}>{p.approved?"✓ 반영 완료":"확인"}</button></div>}
         <div className="photo-count-row"><p className="mini-label">Shift로 여러 장을 선택하면 선택한 칸부터 순서대로 채워집니다</p><label>사진 수<select value={p.photoCount} onChange={e=>updatePlay(pi,{photoCount:+e.target.value as 4|6|8})}><option value={4}>4장</option><option value={6}>6장</option><option value={8}>8장</option></select></label></div>
         <div className="photo-controls">{p.photos.slice(0,p.photoCount).map((ph,si)=><div className="photo-control" key={si} draggable onDragStart={e=>startPhotoOrderDrag(e,pi,si)} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move"}} onDrop={e=>dropPhotoOrder(e,pi,si)} onDragEnd={()=>{orderDragRef.current=null}}>
           <label className="upload"><span>{ph?`${si+1}번 사진 변경`:`＋ ${si+1}번 사진`}</span><input hidden multiple type="file" accept="image/*" onChange={e=>upload(e,pi,si)}/></label>

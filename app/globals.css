@@ -35,7 +35,7 @@ footer p{max-height:none;display:block;overflow:visible;white-space:normal;text-
 .photo-slot img{cursor:grab;touch-action:none}.photo-slot img:active{cursor:grabbing}
 .photo-control{cursor:grab}.photo-control:active{cursor:grabbing}.photo-drag-hint{display:block;color:#7a8993;font-size:9px;font-weight:500;margin:2px 0 5px;text-align:center}
 .play-copy>p,.book-copy-body>p{max-height:7.25em!important;-webkit-line-clamp:5!important}
-.draft-result .description-guide{font-size:0}.draft-result .description-guide::after{content:"기본 4줄 · 핵심 내용이 많으면 5줄";font-size:10px}
+.draft-result .description-guide{font-size:10px}
 footer p{font-size:16px!important;line-height:1.5}
 .app-shell{grid-template-columns:minmax(460px,32vw) minmax(794px,1fr)}
 .ai-button:disabled{opacity:.42;cursor:not-allowed}.play-editor textarea::placeholder{color:#9aa8b1;font-size:12px}
@@ -47,6 +47,7 @@ footer p{font-size:16px!important;line-height:1.5}
 .play-copy>p,.book-copy-body>p{font-size:14px!important;line-height:1.45}
 .memo-guide{display:block;margin-top:3px;padding:10px 12px;border:1px solid #9bcfea;border-radius:9px;background:#eaf6ff;color:#075f9b;font-size:12px;font-weight:800;line-height:1.45}.memo-guide kbd{display:inline-block;padding:2px 7px;border:1px solid #6daecc;border-bottom-width:2px;border-radius:5px;background:#fff;color:#075f9b;font:inherit;font-weight:900}.memo-guide i{padding:0 5px;font-style:normal;color:#65a6c3}
 .draft-result .approve{background:#dff3e5;color:#176b3a;border:1px solid #9ed0ae}.draft-result .approve:hover{background:#ccebd6}.draft-result .approved{background:#edf8f0;color:#2d7547;border:1px solid #b9dbc4}
+.description-rule-error{margin:0;color:#b64232;font-size:11px;font-weight:600;line-height:1.4}
 .draft-result .newspaper-description{box-sizing:border-box;width:360px;max-width:none;min-height:101.5px;padding:0;border:0;border-radius:0;background:transparent;outline:0;resize:none;overflow:hidden;font-family:"Freesentation",sans-serif;font-size:14px;font-weight:400;line-height:1.45;letter-spacing:normal;word-break:keep-all;overflow-wrap:normal;line-break:strict;white-space:pre-wrap}.draft-result .newspaper-description:focus{outline:0}.draft-result .newspaper-description.book-description{width:282px}.draft-result .newspaper-description.wide-description{width:383px}.draft-result .newspaper-description.book-description.wide-description{width:293px}.play-copy>p,.book-copy-body>p{word-break:keep-all;overflow-wrap:normal;line-break:strict;white-space:pre-wrap}
 .has-book-card:not(.card-4) .photo-grid{grid-template-rows:repeat(2,90px)}.book-copy-body{border:0}.book-cover-slot{border:0;box-shadow:none}
 .book-drop-zone{height:72px;border-width:2px;background:#f7fcff;text-align:center}.book-drop-zone:hover{background:#eaf6ff;border-color:#4b9fc8}

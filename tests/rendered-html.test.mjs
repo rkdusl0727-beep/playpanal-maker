@@ -39,3 +39,13 @@ test("includes durable persistence and calendar logic", async () => {
   assert.match(page, /<option value=\{4\}>4장<\/option>/);
   assert.match(page, /<option value=\{8\}>8장<\/option>/);
 });
+
+test("locks parent-facing play descriptions to the approved writing rules", async () => {
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  assert.match(page, /text\.length < 180 \|\| text\.length > 230/);
+  assert.match(page, /sentences\.length !== 3/);
+  assert.match(page, /모습을 보였습니다/);
+  assert.match(page, /나갔습니다/);
+  assert.match(page, /교육적 효과\|학습 목표\|발달시켰다/);
+  assert.match(page, /아이들은 말랑말랑한 클레이를 조물조물 만지며/);
+});
