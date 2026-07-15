@@ -299,27 +299,36 @@ const naturalizeNoteBase = (note: string, playTitle: string) => {
 
 // 마지막 문장은 배움을 설명하거나 평가하지 않고, 메모에서 확인되는
 // 놀이 장면이 어떻게 이어졌는지를 부모가 그려 볼 수 있게 마무리한다.
-const playClosingSentence = (note: string) => {
-  const context = note;
-  if (/소리|말로|낱말|어휘|글자|읽고|읽어|써봄|써\s*봄|말로\s*나타/.test(context)) {
-    return "소리와 낱말을 하나둘 연결하며 떠오른 생각을 말과 글로 담아 가는 놀이가 이어졌답니다.";
-  }
-  if (/실험|변화|관찰|색소|구름|비가|섞어|번짐|자연|식물|꽃|나뭇잎|곤충|씨앗/.test(context)) {
-    return "눈앞에서 달라지는 모습을 차근차근 살펴보며 궁금한 장면을 따라 놀이를 이어 갈 수 있었어요.";
-  }
-  if (/달리|뛰|점프|균형|기어|움직임|몸짓|물총|물놀이|신체/.test(context)) {
-    return "몸의 움직임과 거리를 스스로 조절하며 친구들과 안전하게 놀이를 이어 나갔습니다.";
-  }
-  if (/친구|짝|함께|협동|나누|서로|공동/.test(context)) {
-    return "서로의 놀이를 살펴보고 방법을 나누며 저마다의 생각을 담은 놀이가 이어졌답니다.";
-  }
-  if (/미술|그림|색|물감|분필|클레이|색종이|모자이크|모빌|꾸미|표현|만들/.test(context)) {
-    return "손끝으로 모양을 만들어 가며 저마다의 생각을 담아 표현하는 즐거움을 느껴 볼 수 있었어요.";
-  }
-  return "놀이에서 발견한 모습을 차근차근 살펴보며 저마다의 방법으로 놀이를 이어 갈 수 있었어요.";
+const playClosingSentence = (note: string, variant = 0) => {
+  const seasonal = /여름|바다|비|빗방울|태양|장마|아이스크림|빙수/.test(note);
+  const closings = [
+    // ① 표현
+    "완성한 모습을 하나둘 살펴보며 저마다 떠올린 장면을 작품으로 나누어 보았어요.",
+    // ② 탐색
+    "재료를 이리저리 살펴보며 다음 놀이로 이어질 새로운 방법을 발견했답니다.",
+    // ③ 협력
+    "서로의 놀이를 바라보고 생각을 보태며 한층 풍성한 장면을 함께 완성해 보았어요.",
+    // ④ 관찰
+    "처음과 달라진 모습을 찬찬히 바라보며 놀이에서 만난 변화를 다시 살펴보았답니다.",
+    // ⑤ 놀이의 확장
+    "놀이에서 생긴 관심은 새로운 재료와 방법을 찾아보는 다음 장면으로 자연스럽게 이어졌어요.",
+    // ⑥ 성취감
+    "하나둘 완성되어 가는 모습을 바라보며 놀이를 마친 얼굴에 뿌듯함이 번졌답니다.",
+    // ⑦ 문제 해결
+    "잘되지 않는 부분은 방법을 바꾸어 다시 시도하며 끝까지 놀이를 완성해 보았어요.",
+    // ⑧ 집중
+    "작은 부분까지 정성껏 다듬는 동안 놀이에 오래 머무는 집중된 모습이 이어졌답니다.",
+    // ⑨ 감각 경험
+    "손에 닿는 느낌과 눈앞의 색을 천천히 즐기며 감각으로 만난 놀이를 마무리해 보았어요.",
+    // ⑩ 계절 경험
+    seasonal
+      ? "완성된 장면들이 어우러지며 교실에도 시원한 계절 풍경이 펼쳐졌답니다."
+      : "완성된 장면들이 교실에 하나둘 모이며 오늘의 놀이 풍경이 따뜻하게 펼쳐졌답니다.",
+  ];
+  return closings[((variant % closings.length) + closings.length) % closings.length];
 };
 
-const restateCopiedMemo = (note: string) => {
+const restateCopiedMemo = (note: string, closingVariant = 0) => {
   const materials = ["클레이", "휴지심", "색종이", "자연물", "분필", "물감", "우드락", "연필", "블록", "악기", "페트병", "크레파스", "습자지"]
     .filter(material => note.includes(material)).slice(0, 3);
   const result = [
@@ -341,7 +350,7 @@ const restateCopiedMemo = (note: string) => {
   const second = /친구|함께|협동|짝/.test(note)
     ? `모양과 쓰임을 하나둘 맞추어 가고 친구의 표현과 어우러지도록 놀이를 이어 가는 모습이 보였답니다.`
     : `재료를 만지고 모양을 다듬는 과정을 거치며 떠오른 모습을 정성껏 완성해 가는 모습이 보였답니다.`;
-  return dedupeSentences(`${first} ${second} ${playClosingSentence(note)}`);
+  return dedupeSentences(`${first} ${second} ${playClosingSentence(note, closingVariant)}`);
 };
 
 const formalizePanelSentence = (sentence: string) => sentence
@@ -378,18 +387,18 @@ const observationSentence = (sentence: string, note: string) => {
   return `${formalizePanelSentence(body)}, 놀이의 흐름을 차근차근 이어 가는 모습이 보였답니다.`;
 };
 
-const toPanelDescription = (note: string, story: string) => {
+const toPanelDescription = (note: string, story: string, closingVariant = 0) => {
   if (/클레이/.test(note) && /아이스크림/.test(note) && /휴지심/.test(note) && /아이스바/.test(note)) {
-    return "아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 장식과 무늬를 더하며 저마다의 여름 디저트를 완성했답니다. 손끝으로 모양을 만들어 가며 각자의 생각을 담아 표현하는 즐거움을 느껴 볼 수 있었어요.";
+    return `아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고, 휴지심을 활용해 알록달록한 아이스바도 만들어 보았어요. 좋아하는 맛과 색을 떠올려 재료를 선택하고, 장식과 무늬를 더하며 저마다의 여름 디저트를 완성했답니다. ${playClosingSentence(note, closingVariant)}`;
   }
   if (/클레이/.test(note) && /아이스크림/.test(note)) {
-    return "아이들은 말랑말랑한 클레이를 조물조물 만지며 시원한 아이스크림 모양을 만들어 보았습니다. 손끝으로 크기와 모양을 차근차근 다듬고 장식을 더해, 저마다 떠올린 아이스크림을 완성하는 모습이 보였답니다. 완성된 모양을 하나둘 살펴보며 생각을 작품으로 이어 가는 즐거움을 느껴 볼 수 있었어요.";
+    return `아이들은 말랑말랑한 클레이를 조물조물 만지며 시원한 아이스크림 모양을 만들어 보았습니다. 손끝으로 크기와 모양을 차근차근 다듬고 장식을 더해, 저마다 떠올린 아이스크림을 완성하는 모습이 보였답니다. ${playClosingSentence(note, closingVariant)}`;
   }
   const sentences = dedupeSentences(story).split(/(?<=[.!?])\s+/).filter(Boolean);
   const first = `${formalizePanelSentence(sentences[0] || note)}.`;
   const secondSource = sentences[1] || sentences[0] || note;
   const second = observationSentence(secondSource, note);
-  const third = playClosingSentence(note);
+  const third = playClosingSentence(note, closingVariant);
   return dedupeSentences(`${first} ${second} ${third}`);
 };
 
@@ -412,13 +421,13 @@ const panelDescriptionIssues = (value: string, note = "") => {
   const issues: string[] = [];
   if (sentences.length !== 3) issues.push("정확히 3문장이어야 합니다");
   if (text.length < 150 || text.length > 180) issues.push("150~180자로 작성해 주세요");
-  const endings = sentences.map(sentence => sentence.match(/(?:보았습니다|모습을 보였습니다|모습이 보였답니다|이어 나갔습니다|이어졌답니다|넓혀 나갔습니다|보았어요|했답니다|수 있었어요|보였어요|나타났어요|완성했어요|즐겨 보았어요|꾸며 보았어요|담아 보았어요)\.$/)?.[0] || "");
+  const endings = sentences.map(sentence => sentence.match(/(?:보았습니다|모습을 보였습니다|모습이 보였답니다|이어 나갔습니다|이어졌답니다|넓혀 나갔습니다|보았답니다|보았어요|했답니다|수 있었어요|보였어요|나타났어요|완성했어요|즐겨 보았어요|꾸며 보았어요|담아 보았어요|이어졌어요|펼쳐졌답니다|번졌답니다)\.$/)?.[0] || "");
   if (endings.filter(Boolean).length !== sentences.length) issues.push("부드러운 부모 공개용 종결 표현을 사용해 주세요");
   if (new Set(endings).size !== endings.length) issues.push("같은 종결 표현을 반복할 수 없습니다");
   const varietyCount = text.match(/다양한|다채로운|여러 가지/g)?.length ?? 0;
   if (varietyCount > 1) issues.push("'다양한·다채로운·여러 가지'는 1회 이하로 사용해 주세요");
   if (/교육적 효과|학습 목표|발달시켰다/.test(text)) issues.push("딱딱한 교육 용어는 사용할 수 없습니다");
-  if (/재료의 특성을 탐색하며|상상력과 표현력을 넓혀 나갔습니다|자신만의 .{0,20} 표현했습니다/.test(text)) issues.push("반복적인 AI 문구 대신 실제 놀이 장면을 작성해 주세요");
+  if (/상상력과 표현력을 넓혀 나갔습니다|손끝으로 모양을 만들어 가며.{0,30}표현하는 즐거움|재료의 특성을 탐색하며|자신만의 .{0,20} 표현(?:하였습니다|했습니다)|다양한 재료를 탐색하였습니다/.test(text)) issues.push("금지된 AI 문구와 유사한 표현은 사용할 수 없습니다");
   if (/(?:해봄|해보았음|볼\s*수\s*있었음|나타남|관찰함|표현함|놀이함|했음|있음|함)(?:[.!?]|$)/.test(text)) issues.push("메모체 종결은 사용할 수 없습니다");
   if (note && copiesMemoStructure(note, text)) issues.push("메모 문장을 이어 쓰지 말고 새로운 문장으로 재서술해 주세요");
   return issues;
@@ -737,10 +746,10 @@ export default function Home() {
       if (i !== idx) return p;
       const generatedTitle = makeNewspaperTitle(note, "", p.isBookPlay);
       const memoStory = preserveMemoCore(note, naturalizeNoteBase(note, generatedTitle));
-      let generatedDescription = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, memoStory), generatedTitle));
+      let generatedDescription = fitDescriptionToPanel(removeTitleLead(toPanelDescription(note, memoStory, idx), generatedTitle));
       // 생성 결과가 메모의 긴 문장을 그대로 포함하면 한 번 더 교사 문체로 재서술한다.
       if (copiesMemoStructure(note, generatedDescription)) {
-        const restated = restateCopiedMemo(note);
+        const restated = restateCopiedMemo(note, idx);
         if (restated) generatedDescription = fitDescriptionToPanel(restated);
       }
       return { ...p, note, title: generatedTitle, description: generatedDescription, approved: false };

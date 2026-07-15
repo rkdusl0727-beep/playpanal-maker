@@ -50,11 +50,14 @@ test("locks parent-facing play descriptions to the approved writing rules", asyn
   assert.match(page, /교육적 효과\|학습 목표\|발달시켰다/);
   assert.match(page, /달콤한 여름 디저트/);
   assert.match(page, /아이들은 말랑말랑한 클레이로 아이스크림 모형을 꾸미고/);
-  assert.match(page, /손끝으로 모양을 만들어 가며 각자의 생각을 담아 표현하는 즐거움/);
+  assert.match(page, /const playClosingSentence = \(note: string, variant = 0\)/);
+  assert.match(page, /① 표현/);
+  assert.match(page, /⑩ 계절 경험/);
+  assert.match(page, /금지된 AI 문구와 유사한 표현은 사용할 수 없습니다/);
+  assert.doesNotMatch(page, /return "손끝으로 모양을 만들어 가며 각자의 생각을 담아 표현하는 즐거움을 느껴 볼 수 있었어요/);
   assert.match(page, /블록으로 만든 놀이 공간/);
   assert.match(page, /알록달록 꾸미기 놀이/);
   assert.match(page, /재료·계절·놀이 결과가 보이는 제목/);
-  assert.match(page, /반복적인 AI 문구 대신 실제 놀이 장면/);
   assert.match(page, /copiesMemoStructure/);
   assert.match(page, /restateCopiedMemo/);
   assert.match(page, /메모 문장을 이어 쓰지 말고 새로운 문장으로 재서술/);
